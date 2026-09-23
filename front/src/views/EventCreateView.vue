@@ -5,17 +5,15 @@
       <div>
         <span class="page-label">NEW EVENT</span>
         <h1>予定を追加</h1>
-        <p>予定と必要な準備を一緒に登録します。</p>
       </div>
     </header>
 
-    <form class="event-form-shell" @submit.prevent="submitForm">
+    <form class="event-form-shell ui-surface" @submit.prevent="submitForm">
       <fieldset class="event-form-panel" :disabled="submitting || !!pendingPayload">
         <div class="panel-heading">
           <span class="step-number">01</span>
           <div>
             <h2>予定の情報</h2>
-            <p>Google Calendar に登録する内容を入力してください。</p>
           </div>
         </div>
 
@@ -66,7 +64,6 @@
           <span class="step-number">02</span>
           <div>
             <h2>準備チェックリスト</h2>
-            <p>この予定に必要なものを追加できます。</p>
           </div>
         </div>
 
@@ -91,13 +88,9 @@
         <div v-else class="checklist-empty">
           <span>✓</span>
           <strong>準備項目はまだありません</strong>
-          <p>予定だけを登録することもできます。</p>
         </div>
 
         <div class="form-footer">
-          <p class="integration-note">
-            Google Calendar のメインカレンダーと、このアプリのチェックリストに保存します。
-          </p>
           <p v-if="submitMessage" class="submit-message" role="status">{{ submitMessage }}</p>
           <div class="form-actions">
             <button type="button" class="cancel-button" :disabled="submitting" @click="goBack">キャンセル</button>
@@ -237,7 +230,7 @@ button:disabled { opacity: .45; cursor: default; }
 .page-label { display: block; margin-bottom: 3px; color: #667892; font-size: 9px; font-weight: 800; letter-spacing: 1.7px; }
 .create-header h1 { margin: 0; font-size: 23px; letter-spacing: -.6px; }
 .create-header p { margin: 4px 0 0; color: #7b8798; font-size: 11px; }
-.event-form-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .8fr); overflow: hidden; border: 1px solid #cfd8e6; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgba(34,50,71,.09); }
+.event-form-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(320px, .8fr); overflow: hidden; }
 .event-form-panel, .checklist-panel { min-width: 0; min-height: 0; padding: 28px; overflow: auto; }
 .event-form-panel { border-right: 1px solid #dfe5ed; }
 .checklist-panel { display: flex; flex-direction: column; }
@@ -273,13 +266,12 @@ button:disabled { opacity: .45; cursor: default; }
 .checklist-empty strong { color: #657286; font-size: 11px; }
 .checklist-empty p { margin: 5px 0 0; font-size: 9px; }
 .form-footer { margin-top: auto; padding-top: 18px; border-top: 1px solid #e5e9ef; }
-.integration-note { margin: 0 0 10px; color: #7b8798; font-size: 9px; line-height: 1.5; }
 .submit-message { margin: 0 0 10px; color: #126d58; font-size: 9px; line-height: 1.5; }
 .form-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
 .form-actions button { height: 40px; border-radius: 9px; font-size: 11px; font-weight: 700; cursor: pointer; }
 .cancel-button { border: 1px solid #d3dae5; background: #fff; color: #68768a; }
 .primary-button { border: none; background: #273c5c; color: #fff; }
-@media (max-width: 950px) {
+@media (max-width: 900px) {
   .event-create-page { height: auto; }
   .event-form-shell { grid-template-columns: 1fr; overflow: visible; }
   .event-form-panel { border-right: none; border-bottom: 1px solid #dfe5ed; }

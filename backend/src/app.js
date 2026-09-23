@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config({ override: true })
 
 const express = require('express')
 const cors = require('cors')
@@ -12,6 +12,7 @@ const memoRouter = require('../router/memoRouter')
 const checklistTemplateRouter = require('../router/checklistTemplateRouter')
 const checklistTemplateService = require('../service/checklistTemplateService')
 const calendarPreferenceService = require('../service/calendarPreferenceService')
+const checklistSchemaService = require('../service/checklistSchemaService')
 
 const app = express()
 
@@ -43,7 +44,9 @@ app.use('/api/checklist-templates', checklistTemplateRouter)
 const PORT = process.env.PORT || 3000
 
 // Warm the small settings schema during startup so the first Today request is not delayed by DDL.
-checklistTemplateService.ensureSchema().catch(error => console.error('Checklist template schema initialization failed:', error))
+checklistSchemaService.ensureSchema()
+  .then(() => checklistTemplateService.ensureSchema())
+  .catch(error => console.error('Checklist schema initialization failed:', error))
 calendarPreferenceService.ensureSchema().catch(error => console.error('Calendar preference schema initialization failed:', error))
 
 app.listen(PORT, () => {

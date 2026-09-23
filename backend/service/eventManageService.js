@@ -58,6 +58,7 @@ async function mirror(db, userId, key, event) {
   )
 }
 async function getEvent(userId, tokens, input, deps = {}) {
+  if (!deps.db) await require('./checklistSchemaService').ensureSchema()
   const { api, calendar, ids, key } = await context(tokens,input,deps)
   const event = (await api.events.get(ids,options)).data
   if (event.status === 'cancelled') throw fail(410,'この予定は削除されています。')

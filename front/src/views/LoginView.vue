@@ -17,68 +17,8 @@ const googleLogin = () => {
         </div>
 
         <div class="main-message">
-          <p class="message-eyebrow">PLAN · PREPARE · COMPLETE</p>
-          <h1>
-            予定の先にある準備まで、<br />
-            一つの画面で。
-          </h1>
-
-          <p class="description">
-            Googleカレンダーの予定ごとに必要なタスクを整理。<br />
-            今日やることと、予定の準備を迷わず確認できます。
-          </p>
-
-          <div class="feature-list">
-            <span><b>01</b> 予定を自動で確認</span>
-            <span><b>02</b> 準備項目をチェック</span>
-            <span><b>03</b> 今日のメモを保存</span>
-          </div>
-        </div>
-
-        <!-- 일정 미리보기 카드 -->
-        <div class="preview-card">
-          <div class="preview-header">
-            <div>
-              <small>TODAY</small>
-              <strong>今日の予定</strong>
-            </div>
-            <span class="preview-date">9月16日</span>
-          </div>
-
-          <div class="preview-event">
-            <div class="time">09:00</div>
-
-            <div class="event-content">
-              <strong>出勤</strong>
-              <p class="done">✓ 社員証を確認</p>
-            </div>
-            <span class="preview-count">1/1</span>
-          </div>
-
-          <div class="preview-event">
-            <div class="time">13:00</div>
-
-            <div class="event-content">
-              <strong>DB研修</strong>
-              <p>○ 教材を準備</p>
-            </div>
-            <span class="preview-count">1/3</span>
-          </div>
-
-          <div class="preview-event">
-            <div class="time">18:30</div>
-
-            <div class="event-content">
-              <strong>Java学習</strong>
-              <p>○ 復習する</p>
-            </div>
-            <span class="preview-count">0/2</span>
-          </div>
-
-          <div class="preview-progress">
-            <span>今日の準備</span>
-            <strong>2 / 6 完了</strong>
-          </div>
+          <p>キャル株式会社 オリジナル作品</p>
+          <h1>キム・ドクモ</h1>
         </div>
 
       </div>
@@ -266,177 +206,26 @@ const googleLogin = () => {
 ========================= */
 
 .main-message {
-  margin-top: 9vh;
-}
-
-.message-eyebrow {
-  margin: 0 0 18px;
-  color: #9fb7df;
-  font-size: 11px;
-  font-weight: 750;
-  letter-spacing: 2.2px;
+  margin: auto;
+  width: min(680px, 100%);
+  text-align: center;
 }
 
 .main-message h1 {
+  margin: 22px 0 0;
+  font-size: clamp(40px, 4vw, 58px);
+  line-height: 1.25;
+  letter-spacing: -.04em;
+}
+
+.main-message p {
   margin: 0;
-
-  font-size: clamp(42px, 4vw, 66px);
-  line-height: 1.35;
-
-  letter-spacing: -2px;
-}
-
-.description {
-  margin-top: 26px;
-
-  font-size: 16px;
-  line-height: 1.8;
-
-  color: #d7dfeb;
-}
-
-.feature-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 26px;
-}
-
-.feature-list span {
-  padding: 9px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  background: #314969;
-  color: #edf2f8;
-  font-size: 11px;
-}
-
-.feature-list b {
-  margin-right: 6px;
-  color: #9fb7df;
-}
-
-/* =========================
-   일정 미리보기
-========================= */
-
-.preview-card {
-  width: 430px;
-
-  margin-top: auto;
-  margin-left: auto;
-
-  padding: 20px 24px;
-
-  border: 1px solid #d8e0eb;
-  border-radius: 20px;
-
-  background: #ffffff;
-  color: #243247;
-  box-shadow: 0 20px 45px rgba(10, 24, 45, 0.28);
-}
-
-.preview-header {
-  display: flex;
-  justify-content: space-between;
-
-  padding-bottom: 14px;
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-
-  font-size: 13px;
-  color: #526176;
-}
-
-.preview-header div {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.preview-header small {
-  color: #315cbb;
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 1.4px;
-}
-
-.preview-header strong {
-  color: #273c5c;
-  font-size: 14px;
-}
-
-.preview-date {
-  align-self: center;
-  padding: 5px 8px;
-  border-radius: 7px;
-  background: #e9edf3;
-  color: #536176;
-}
-
-.preview-event {
-  display: flex;
-
-  gap: 18px;
-
-  padding: 14px 0;
-
-  align-items: center;
-  border-bottom: 1px solid #e7ebf1;
-}
-
-.preview-event:last-child {
-  border-bottom: none;
-}
-
-.time {
-  min-width: 54px;
-
-  font-size: 13px;
-
-  color: #315cbb;
-  font-weight: 700;
-}
-
-.event-content strong {
-  font-size: 14px;
-}
-
-.event-content p {
-  margin: 5px 0 0;
-
-  font-size: 12px;
-
-  color: #758196;
-}
-
-.event-content .done {
-  color: #16856b;
-}
-
-.preview-count {
-  margin-left: auto;
-  padding: 4px 7px;
-  border-radius: 999px;
-  background: #e9edf3;
-  color: #273c5c;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.preview-progress {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
-  padding: 10px 12px;
-  border-radius: 9px;
-  background: #edf5f2;
-  color: #507066;
-  font-size: 11px;
-}
-
-.preview-progress strong {
-  color: #126d58;
+  color: #dce5f1;
+  font-size: clamp(18px, 2vw, 28px);
+  font-weight: 650;
+  line-height: 1.55;
+  letter-spacing: .08em;
+  text-wrap: balance;
 }
 
 /* =========================
@@ -621,9 +410,6 @@ const googleLogin = () => {
     width: 38%;
   }
 
-  .preview-card {
-    width: 390px;
-  }
 }
 
 @media (max-width: 820px) {

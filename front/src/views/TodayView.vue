@@ -85,30 +85,14 @@
     <!-- ================================
          Main
     ================================= -->
-    <main class="planner workspace-grid">
+    <main class="planner workspace-grid ui-surface">
 
       <!-- 일정 -->
       <section class="schedule-section">
 
-        <div class="section-title-row">
-
-          <div>
-            <span class="section-label">
-              SCHEDULE
-            </span>
-
-            <h2>
-              {{ dayLabel }}の予定
-            </h2>
-          </div>
-
-          <span class="section-count">
-            {{ schedules.length }}件
-          </span>
-
-        </div>
-
-        <div class="section-divider"></div>
+        <WorkspaceSectionHeader eyebrow="SCHEDULE" :title="dayLabel + 'の予定'">
+          <template #actions><span class="section-count">{{ schedules.length }}件</span></template>
+        </WorkspaceSectionHeader>
 
 
         <!-- 로딩 -->
@@ -185,53 +169,45 @@
       </section>
 
       <section class="center-column">
-      <section v-if="!detailEvent" class="overview-section">
-        <div class="section-title-row overview-title-row">
-          <div><span class="section-label">CHECKLIST OVERVIEW</span><h2>{{ dayLabel }}の全チェックリスト</h2></div>
-          <span class="checklist-total">{{ overallCompleted }}/{{ overallItems.length }}</span>
-        </div>
-        <div class="section-divider"></div>
-        <div class="overview-summary">
-          <span>通常のタスクを先に、予定の準備をその下に表示します</span>
-          <strong v-if="overallItems.length && overallCompleted === overallItems.length">✓ すべて完了</strong>
-        </div>
+      <section v-if="!detailEvent" class="overview-section workspace-pane-content">
+        <WorkspaceSectionHeader eyebrow="CHECKLIST OVERVIEW" :title="dayLabel + 'の全チェックリスト'">
+          <template #actions><span class="checklist-total">{{ overallCompleted }}/{{ overallItems.length }}</span></template>
+        </WorkspaceSectionHeader>
+        <div v-if="overallItems.length && overallCompleted === overallItems.length" class="overview-summary"><strong>✓ すべて完了</strong></div>
         <div class="progress-track" aria-hidden="true"><span :style="{ width: `${overallProgress}%` }"></span></div>
+        <p v-if="eventChecklistError" class="checklist-error overview-error">{{ eventChecklistError }}</p>
 
         <div v-if="checklistLoading" class="small-empty"><span>チェックリストを読み込んでいます...</span></div>
         <div v-else-if="!checklistError && overallItems.length === 0" class="small-empty overview-empty">
-          <strong>まだ項目がありません</strong><span>{{ dayLabel }}やることを追加しましょう。</span>
+          <strong>まだ項目がありません</strong><span>{{ dayLabel }}のチェックリストを追加しましょう。</span>
         </div>
         <div v-else class="overview-groups">
-          <section v-for="group in overviewGroups" :key="group.key" :class="['overview-group', { expanded:group.kind === 'general' || expandedGroupKey === group.key }]">
-            <div v-if="group.kind === 'general'" class="overview-group-heading">
-              <div><span>GENERAL</span><strong>{{ group.title }}</strong></div>
-              <small>{{ getCompletedCount(group.items) }}/{{ group.items.length }}</small>
-            </div>
-            <div v-else class="overview-group-heading event-group-heading">
-              <button class="overview-toggle" type="button" :aria-expanded="expandedGroupKey === group.key" @click="toggleOverviewGroup(group.key)">
-                <span class="accordion-arrow">{{ expandedGroupKey === group.key ? '⌄' : '›' }}</span>
-                <span class="event-time-label">{{ group.schedule.allDay ? '終日' : group.schedule.startTime }}</span>
+          <section v-for="group in overviewGroups" :key="group.key" :class="['overview-group','workspace-content-card', { expanded:isOverviewGroupExpanded(group.key) }]">
+            <div class="overview-group-heading event-group-heading">
+              <button class="overview-toggle" type="button" :aria-expanded="isOverviewGroupExpanded(group.key)" @click="toggleOverviewGroup(group.key)">
+                <span class="accordion-arrow">{{ isOverviewGroupExpanded(group.key) ? '⌄' : '›' }}</span>
+                <span class="event-time-label">{{ group.kind === 'general' ? 'GENERAL' : group.schedule.allDay ? '終日' : group.schedule.startTime }}</span>
                 <strong>{{ group.title }}</strong>
                 <small>{{ getCompletedCount(group.items) }}/{{ group.items.length }}</small>
               </button>
-              <button class="overview-detail-button" type="button" @click="openFocus(group.schedule)">詳細</button>
+              <button v-if="group.kind === 'event'" class="overview-detail-button" type="button" @click="openFocus(group.schedule)">詳細</button>
             </div>
-            <div v-if="group.kind === 'general' && group.items.length === 0" class="overview-group-empty">通常のタスクはまだありません</div>
-            <div v-else-if="group.kind === 'general' || expandedGroupKey === group.key" class="todo-list overview-list">
+            <div v-if="isOverviewGroupExpanded(group.key) && group.kind === 'general' && group.items.length === 0" class="overview-group-empty">チェックリストはまだありません</div>
+            <div v-else-if="isOverviewGroupExpanded(group.key)" class="todo-list overview-list">
               <label v-for="(item,index) in group.items" :key="item.id" class="todo-row"
                 :draggable="!reordering" @dragstart="dragIndex=index" @dragover.prevent @drop.prevent="moveChecklist(dragIndex,index,group.items)">
                 <input :checked="item.completed" :disabled="item.pending" type="checkbox" @change="updateChecklistStatus(item,$event.target.checked)">
                 <span :class="{completed:item.completed}">{{ item.title }}</span>
                 <button type="button" class="order-button" :disabled="index===0 || reordering" aria-label="上へ移動" @click.prevent="moveChecklist(index,index-1,group.items)">↑</button>
                 <button type="button" class="order-button" :disabled="index===group.items.length-1 || reordering" aria-label="下へ移動" @click.prevent="moveChecklist(index,index+1,group.items)">↓</button>
-                <button type="button" class="delete-checklist-button" :disabled="deletingChecklistId===item.id" title="削除" @click.stop="deleteChecklist(item,group.items)">×</button>
+                <button type="button" class="edit-checklist-button" :disabled="editingBusy" title="編集" @click.stop="openChecklistEditor(item,group.items)">✎</button>
               </label>
             </div>
           </section>
         </div>
 
         <div class="checklist-editor inline-editor overview-editor">
-          <input v-model="newChecklistTitle" class="checklist-input" type="text" maxlength="200"
+          <input ref="checklistInput" v-model="newChecklistTitle" class="checklist-input" type="text" maxlength="200"
             placeholder="通常のチェックリストを追加..." @keydown.enter.prevent="addChecklist"
             :disabled="savingChecklist || reordering || checklistLoading || !!checklistError">
           <button class="checklist-save-button" :disabled="savingChecklist || reordering || checklistLoading || !!checklistError || !newChecklistTitle.trim()" @click="addChecklist">
@@ -253,23 +229,9 @@
         <!-- 일반 체크리스트 -->
         <section v-if="detailEvent" class="todo-section">
 
-          <div class="section-title-row checklist-title-row">
-
-            <div>
-              <span class="section-label">
-                CHECKLIST
-              </span>
-
-              <h2>{{ checklistTitle }}</h2>
-            </div>
-
-            <span class="checklist-total">
-              {{ displayCompletedCount }}/{{ displayChecklists.length }}
-            </span>
-
-          </div>
-
-          <div class="section-divider"></div>
+          <WorkspaceSectionHeader eyebrow="CHECKLIST" :title="checklistTitle">
+            <template #actions><span class="checklist-total">{{ displayCompletedCount }}/{{ displayChecklists.length }}</span></template>
+          </WorkspaceSectionHeader>
 
           <div class="selected-event-summary">
             <template v-if="checklistTab === 'event' && selectedSchedule">
@@ -281,7 +243,7 @@
               <span v-else>準備を確認しましょう</span>
             </template>
             <template v-else>
-              <div>{{ dayLabel }}やること</div>
+              <div>{{ dayLabel }}のチェックリスト</div>
               <strong v-if="displayChecklists.length && displayCompletedCount === displayChecklists.length">✓ すべて完了</strong>
               <span v-else>{{ dayLabel }}のタスクを確認しましょう</span>
             </template>
@@ -293,7 +255,7 @@
 
           <div v-if="!checklistLoading && !checklistError && displayChecklists.length === 0" class="small-empty">
             <strong>まだ項目がありません</strong>
-            <span>{{ checklistTab === 'event' ? 'この予定に必要なものを追加しましょう。' : '今日やることを追加しましょう。' }}</span>
+            <span>{{ checklistTab === 'event' ? 'この予定に必要なものを追加しましょう。' : 'チェックリストを追加しましょう。' }}</span>
           </div>
 
           <div v-else class="todo-list">
@@ -303,13 +265,14 @@
               <span :class="{completed:item.completed}">{{ item.title }}</span>
               <button type="button" class="order-button" :disabled="index===0 || reordering" aria-label="上へ移動" @click.prevent="moveChecklist(index,index-1)">↑</button>
               <button type="button" class="order-button" :disabled="index===displayChecklists.length-1 || reordering" aria-label="下へ移動" @click.prevent="moveChecklist(index,index+1)">↓</button>
-              <button type="button" class="delete-checklist-button" :disabled="deletingChecklistId===item.id" title="削除" @click.stop="deleteChecklist(item)">×</button>
+              <button type="button" class="edit-checklist-button" :disabled="editingBusy" title="編集" @click.stop="openChecklistEditor(item,displayChecklists)">✎</button>
             </label>
           </div>
 
 
           <div class="checklist-editor inline-editor">
             <input
+              ref="checklistInput"
               v-model="newChecklistTitle"
               class="checklist-input"
               type="text"
@@ -335,10 +298,7 @@
         </section>
 
         <section v-else class="memo-section">
-          <div class="section-title-row">
-            <div><span class="section-label">MEMO</span><h2>{{ dayLabel }}のメモ</h2></div>
-          </div>
-          <div class="section-divider"></div>
+          <WorkspaceSectionHeader eyebrow="MEMO" :title="dayLabel + 'のメモ'" />
           <textarea v-model="memo" maxlength="500" :placeholder="dayLabel + 'のメモを入力...'"
             :disabled="memoLoading || memoSaving || memoLoadFailed" @input="handleMemoInput"
             @keydown.ctrl.enter.prevent="saveMemo" @keydown.meta.enter.prevent="saveMemo"></textarea>
@@ -350,17 +310,21 @@
       </aside>
 
     </main>
+    <ChecklistEditModal v-if="editingChecklist" :title="editingChecklist.title" :busy="editingBusy" :error="checklistEditError"
+      @close="closeChecklistEditor" @save="saveChecklistEdit" @delete="deleteChecklistEdit" />
   </div>
 </template>
 
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent, nextTick } from 'vue'
 import axios from 'axios'
 import { API_ORIGIN } from '../utils/http'
 import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { dateKey, validDate, mapEvent, occursOn } from '../utils/calendar'
+import WorkspaceSectionHeader from '../components/WorkspaceSectionHeader.vue'
 const EventWorkspace = defineAsyncComponent(() => import('../components/EventWorkspace.vue'))
+const ChecklistEditModal = defineAsyncComponent(() => import('../components/ChecklistEditModal.vue'))
 const detailEvent = ref(null)
 function handleEventChange({event,deleted,checklistOnly}) {
   const key = event.calendarId + ':' + event.id
@@ -398,19 +362,22 @@ const isToday = computed(() => dateInputValue.value === dateKey(new Date()))
 const dayLabel = computed(() => isToday.value ? '今日' : 'この日')
 const schedules = ref([]), loading = ref(false), syncing = ref(false), scheduleError = ref('')
 const selectedSchedule = ref(null), checklistTab = ref('general')
-const expandedGroupKey = ref(null)
+const expandedGroupKeys = ref(new Set(['general']))
 const orderedSchedules = computed(() => [...schedules.value].sort((a,b) => {
   if (a.allDay !== b.allDay) return a.allDay ? -1 : 1
   return new Date(a.start) - new Date(b.start)
 }))
 const checklists = ref([]), newChecklistTitle = ref(''), savingChecklist = ref(false)
+const checklistInput = ref(null)
 const checklistError = ref(''), deletingChecklistId = ref(null), checklistLoading = ref(false), reordering = ref(false)
+const editingChecklist = ref(null), editingChecklistList = ref(null), editingBusy = ref(false), checklistEditError = ref('')
+const eventChecklistError = ref('')
 const displayChecklists = computed(() => checklistTab.value === 'general' ? checklists.value : selectedSchedule.value?.checklists || [])
-const checklistTitle = computed(() => checklistTab.value === 'general' ? dayLabel.value + 'のタスク' : (selectedSchedule.value?.title || '予定') + 'の準備')
+const checklistTitle = computed(() => checklistTab.value === 'general' ? dayLabel.value + 'のチェックリスト' : (selectedSchedule.value?.title || '予定') + 'の準備')
 const displayCompletedCount = computed(() => getCompletedCount(displayChecklists.value))
 const displayProgress = computed(() => displayChecklists.value.length ? Math.round(displayCompletedCount.value / displayChecklists.value.length * 100) : 0)
 const overviewGroups = computed(() => [
-  { key:'general', kind:'general', title:dayLabel.value + 'やること', items:checklists.value },
+  { key:'general', kind:'general', title:dayLabel.value + 'のチェックリスト', items:checklists.value },
   ...orderedSchedules.value
     .filter(schedule => schedule.checklists.length)
     .sort((a,b) => Number(getCompletedCount(a.checklists) === a.checklists.length) - Number(getCompletedCount(b.checklists) === b.checklists.length))
@@ -427,10 +394,15 @@ function getCompletedCount(items = []) { return items.filter(item => item.comple
 function scheduleProgressLabel(schedule) {
   return schedule.checklists.length ? `${getCompletedCount(schedule.checklists)}/${schedule.checklists.length}` : '準備なし'
 }
-function toggleOverviewGroup(key) { expandedGroupKey.value = expandedGroupKey.value === key ? null : key }
+function isOverviewGroupExpanded(key) { return expandedGroupKeys.value.has(key) }
+function toggleOverviewGroup(key) {
+  const next = new Set(expandedGroupKeys.value)
+  next.has(key) ? next.delete(key) : next.add(key)
+  expandedGroupKeys.value = next
+}
 function mapChecklist(item) { return { id: item.checklist_id, title: item.title, completed: item.is_completed, eventId: item.event_id, pending: false } }
 function canLeave() {
-  if (memoSaving.value || savingChecklist.value || deletingChecklistId.value || reordering.value) return false
+  if (memoSaving.value || savingChecklist.value || deletingChecklistId.value || reordering.value || editingBusy.value) return false
   return (!memoDirty.value && !newChecklistTitle.value.trim()) || window.confirm('未保存のメモ・入力内容を破棄しますか？')
 }
 onBeforeRouteLeave(canLeave)
@@ -474,7 +446,7 @@ async function loadData() {
   const signal = controller.signal, version = ++generation, date = dateInputValue.value
   const current = () => version === generation && !signal.aborted
   loading.value = true; checklistLoading.value = true; memoLoading.value = true
-  scheduleError.value = ''; checklistError.value = ''; memoError.value = ''; memoLoadFailed.value = false
+  scheduleError.value = ''; checklistError.value = ''; eventChecklistError.value = ''; memoError.value = ''; memoLoadFailed.value = false
   schedules.value = []; checklists.value = []; selectedSchedule.value = null; checklistTab.value = 'general'
   memo.value = ''; memoDirty.value = false; memoSaved.value = false; newChecklistTitle.value = ''
   const calendarTask = (async () => {
@@ -482,6 +454,11 @@ async function loadData() {
       const { data } = await api.get('/calendar/events', { params: { date }, signal })
       if (!current()) return
       schedules.value = data.map(event => ({ ...mapEvent(event), checklists: [], checklistKey: (event.calendarId || 'primary') + ':' + event.id }))
+    } catch {
+      if (current()) scheduleError.value = '予定を読み込めませんでした。ログイン状態を確認して再試行してください。'
+      return
+    }
+    try {
       // One batch replaces one HTTP request per event. Legacy raw Google IDs remain readable.
       const keys = [...new Set(schedules.value.flatMap(event => [event.key, event.id]))]
       const rows = []
@@ -498,11 +475,8 @@ async function loadData() {
       }
       const requested = schedules.value.find(event => event.key === route.query.event)
       if (requested) { selectedSchedule.value=requested; detailEvent.value=requested; checklistTab.value='event' }
-    } catch (error) {
-      if (current()) {
-        if (schedules.value.length) checklistError.value = '予定のチェックリストを読み込めませんでした。同期で再試行してください。'
-        else scheduleError.value = '予定を読み込めませんでした。ログイン状態を確認して再試行してください。'
-      }
+    } catch {
+      if (current()) eventChecklistError.value = '予定のチェックリストを読み込めませんでした。同期で再試行してください。'
     } finally { if (current()) loading.value = false }
   })()
   const checklistTask = (async () => {
@@ -534,12 +508,22 @@ async function updateChecklistStatus(item, completed) {
   catch { item.completed = previous; checklistError.value = '更新できませんでした。再試行してください。' }
   finally { item.pending = false }
 }
-async function deleteChecklist(item, list = displayChecklists.value) {
-  if (deletingChecklistId.value || reordering.value || !window.confirm('このチェックリストを削除しますか？')) return
-  deletingChecklistId.value = item.id
-  try { await api.delete('/checklists/' + item.id); const index = list.indexOf(item); if (index >= 0) list.splice(index, 1) }
-  catch { checklistError.value = '削除できませんでした。' }
-  finally { deletingChecklistId.value = null }
+function openChecklistEditor(item,list){editingChecklist.value=item;editingChecklistList.value=list;checklistEditError.value=''}
+function closeChecklistEditor(){if(!editingBusy.value){editingChecklist.value=null;editingChecklistList.value=null;checklistEditError.value=''}}
+async function saveChecklistEdit(title){
+  if(!editingChecklist.value||editingBusy.value)return
+  editingBusy.value=true;checklistEditError.value=''
+  try{const {data}=await api.patch('/checklists/'+editingChecklist.value.id,{title});editingChecklist.value.title=data.title;closeChecklistEditor()}
+  catch(e){checklistEditError.value=e.response?.data?.message||'更新できませんでした。'}
+  finally{editingBusy.value=false;if(!checklistEditError.value)closeChecklistEditor()}
+}
+async function deleteChecklistEdit(){
+  if(!editingChecklist.value||editingBusy.value)return
+  const item=editingChecklist.value,list=editingChecklistList.value
+  editingBusy.value=true;deletingChecklistId.value=item.id;checklistEditError.value=''
+  try{await api.delete('/checklists/'+item.id);const index=list?.indexOf(item)??-1;if(index>=0)list.splice(index,1)}
+  catch(e){checklistEditError.value=e.response?.data?.message||'削除できませんでした。'}
+  finally{editingBusy.value=false;deletingChecklistId.value=null;if(!checklistEditError.value)closeChecklistEditor()}
 }
 async function addChecklist() {
   const title = newChecklistTitle.value.trim()
@@ -553,7 +537,11 @@ async function addChecklist() {
     list.push(mapChecklist(data))
     if (version === generation && displayChecklists.value === list && newChecklistTitle.value.trim() === title) newChecklistTitle.value = ''
   } catch { checklistError.value = '追加できませんでした。同期で再試行してください。' }
-  finally { savingChecklist.value = false }
+  finally {
+    savingChecklist.value = false
+    await nextTick()
+    checklistInput.value?.focus()
+  }
 }
 const dragIndex = ref(null)
 async function moveChecklist(from, to, list = displayChecklists.value) {
@@ -581,6 +569,7 @@ async function saveMemo() {
 watch(() => route.query.date, () => {
   selectedDate.value = validDate(route.query.date) ? new Date(route.query.date + 'T00:00:00') : new Date()
   detailEvent.value = null
+  expandedGroupKeys.value = new Set(['general'])
   loadData()
 })
 watch(() => route.query.event, value => {
@@ -594,7 +583,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
 
 
 <style scoped>
-.event-detail-link { border:0;background:transparent;color:#315cbb;font-size:12px;padding:6px 0;cursor:pointer; }
 .order-button { border: 0; background: transparent; cursor: pointer; color: #526176; padding: 3px; }
 .order-button:disabled { opacity: .3; cursor: default; }
 .todo-row { grid-template-columns: 16px minmax(0,1fr) 20px 20px 24px !important; }
@@ -852,13 +840,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
     minmax(0, 1.8fr)
     minmax(300px, 0.8fr);
 
-  border: 1px solid #dfe6ef;
-  border-radius: 20px;
-
-  background: #ffffff;
-
-  box-shadow:
-    0 10px 30px rgba(42, 63, 89, 0.06);
 }
 
 
@@ -935,88 +916,11 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   border-bottom: 1px solid #edf0f5;
 }
 
-.back-button {
-  border: none;
-  border-radius: 8px;
-  padding: 7px 10px;
-  background: #f2f6ff;
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.back-button:hover {
-  background: #e5edff;
-}
-
-.checklist-context {
-  margin: -4px 0 14px;
-  color: #8a97aa;
-  font-size: 11px;
-}
-
-
-/* =====================================
-   Section titles
-===================================== */
-
-.section-title-row {
-  min-height: 38px;
-
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-}
-
-
-.section-label {
-  display: block;
-
-  margin-bottom: 4px;
-
-  color: #8fa1b8;
-
-  font-size: 9px;
-  font-weight: 700;
-
-  letter-spacing: 1.7px;
-}
-
-
-.section-title-row h2 {
-  margin: 0;
-
-  color: #273244;
-
-  font-size: 17px;
-  font-weight: 700;
-
-  letter-spacing: -0.3px;
-}
-
-.checklist-title-row h2 {
-  overflow: hidden;
-  max-width: 220px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-
 .section-count {
   color: #8794a7;
 
   font-size: 11px;
   font-weight: 600;
-}
-
-
-.section-divider {
-  height: 1px;
-
-  margin: 14px 0 18px;
-
-  background: #edf0f4;
 }
 
 
@@ -1050,11 +954,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
 .schedule-row-selected {
   background: #f5f8ff;
 }
-
-.schedule-row-expanded {
-  background: #f5f8ff;
-}
-
 
 .schedule-time {
   display: flex;
@@ -1158,95 +1057,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   font-size: 10px;
 }
 
-.schedule-description {
-  display: -webkit-box;
-  overflow: hidden;
-  margin-top: 7px;
-  color: #596678;
-  font-size: 12px;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-}
-
-.schedule-description-expanded {
-  display: block;
-  max-height: 112px;
-  overflow: auto;
-  padding-right: 8px;
-  -webkit-line-clamp: unset;
-}
-
-.schedule-description-link {
-  color: #2563eb;
-  text-decoration: underline;
-  text-decoration-color: #a9c0ff;
-  overflow-wrap: anywhere;
-}
-
-.schedule-description-link:hover {
-  color: #1747a6;
-  text-decoration-color: #2563eb;
-}
-
-.description-hint {
-  display: block;
-  margin-top: 5px;
-  color: #9aa7b8;
-  font-size: 10px;
-}
-
-
-.more-button {
-  border: none;
-
-  background: transparent;
-
-  color: #a1aab6;
-
-  cursor: pointer;
-
-  font-size: 16px;
-
-  letter-spacing: 1px;
-}
-
-
-.more-button:hover {
-  color: #2563eb;
-}
-
-
-/* =====================================
-   Event checklist
-===================================== */
-
-.event-checklist {
-  display: flex;
-  flex-wrap: wrap;
-
-  gap: 5px 18px;
-
-  margin-top: 10px;
-}
-
-
-.check-row {
-  display: flex;
-  align-items: center;
-
-  gap: 7px;
-
-  color: #596678;
-
-  font-size: 11px;
-
-  cursor: pointer;
-}
-
-
-.check-row input,
 .todo-row input {
   width: 15px;
   height: 15px;
@@ -1308,7 +1118,7 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   background: #f5f7fb;
 }
 
-.delete-checklist-button {
+.edit-checklist-button {
   width: 22px;
   height: 22px;
   display: flex;
@@ -1319,50 +1129,28 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   border-radius: 6px;
   background: transparent;
   color: #a7b0bd;
-  font-size: 17px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
   opacity: 0;
   transition: 0.18s ease;
 }
 
-.todo-row:hover .delete-checklist-button,
-.delete-checklist-button:focus-visible {
+.todo-row:hover .edit-checklist-button,
+.edit-checklist-button:focus-visible {
   opacity: 1;
 }
 
-.delete-checklist-button:hover {
-  background: #fff0f0;
-  color: #d14343;
+.edit-checklist-button:hover {
+  background: #eaf0fb;
+  color: #315cbb;
 }
 
-.delete-checklist-button:disabled {
+.edit-checklist-button:disabled {
   opacity: 0.45;
   cursor: default;
 }
 
-
-.add-checklist-button {
-  margin-top: 10px;
-
-  padding: 7px 4px;
-
-  border: none;
-
-  background: transparent;
-
-  color: #6b8bc9;
-
-  font-size: 11px;
-  font-weight: 600;
-
-  cursor: pointer;
-}
-
-
-.add-checklist-button:hover {
-  color: #2563eb;
-}
 
 .checklist-editor {
   margin-top: 10px;
@@ -1385,14 +1173,7 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
 }
 
-.checklist-editor-actions {
-  display: flex;
-  gap: 6px;
-  margin-top: 7px;
-}
-
-.checklist-save-button,
-.checklist-cancel-button {
+.checklist-save-button {
   padding: 6px 10px;
   border-radius: 7px;
   font-size: 11px;
@@ -1406,14 +1187,7 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   color: #ffffff;
 }
 
-.checklist-cancel-button {
-  border: 1px solid #dce4ef;
-  background: #ffffff;
-  color: #6b7789;
-}
-
-.checklist-save-button:disabled,
-.checklist-cancel-button:disabled {
+.checklist-save-button:disabled {
   opacity: 0.6;
   cursor: default;
 }
@@ -1572,60 +1346,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   gap: 24px;
 }
 
-.all-day-group {
-  padding: 14px;
-  border: 1px solid #e5ebf5;
-  border-radius: 14px;
-  background: #f8faff;
-}
-
-.all-day-label {
-  display: block;
-  margin-bottom: 9px;
-  color: #8190a6;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
-.all-day-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.all-day-card {
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 11px;
-  border: 1px solid #dce5f4;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #344155;
-  cursor: pointer;
-  transition: 0.18s ease;
-}
-
-.all-day-card:hover,
-.all-day-card.selected {
-  border-color: #8cacfa;
-  background: #edf3ff;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
-}
-
-.all-day-card-title {
-  overflow: hidden;
-  max-width: 260px;
-  font-size: 12px;
-  font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .schedule-row {
   width: 100%;
   padding: 8px 8px 0 0;
@@ -1657,17 +1377,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   text-align: center;
 }
 
-.timed-empty {
-  padding: 24px 0;
-  color: #a3acb9;
-  font-size: 11px;
-  text-align: center;
-}
-
-.checklist-title-row {
-  align-items: center;
-}
-
 .checklist-total {
   padding: 6px 10px;
   border-radius: 999px;
@@ -1675,44 +1384,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   color: #3268ce;
   font-size: 12px;
   font-weight: 750;
-}
-
-.checklist-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-bottom: 16px;
-  padding: 4px;
-  border-radius: 10px;
-  background: #f3f6fa;
-}
-
-.checklist-tabs button {
-  min-width: 0;
-  padding: 8px 6px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: #7b8798;
-  font-size: 10px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.checklist-tabs button.active {
-  background: #ffffff;
-  color: #285fc4;
-  box-shadow: 0 2px 8px rgba(54, 73, 99, 0.09);
-}
-
-.checklist-tabs button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.checklist-tabs button span {
-  margin-left: 3px;
-  color: #9aa5b5;
 }
 
 .selected-event-summary {
@@ -1780,13 +1451,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   grid-column: 1 / -1;
 }
 
-@media (max-width: 520px) {
-  .all-day-card {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-
 /* Unified high-contrast color system */
 .today-page {
   color: #243247;
@@ -1805,27 +1469,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
 
 .sync-button:hover {
   background: #244a9a;
-}
-
-.planner {
-  border-color: #cfd8e6;
-  box-shadow: 0 10px 30px rgba(34, 50, 71, 0.09);
-}
-
-.section-label {
-  color: #667892;
-}
-
-.all-day-group {
-  border-color: #d5ddea;
-  background: #f2f4f8;
-}
-
-.all-day-card:hover,
-.all-day-card.selected {
-  border-color: #315cbb;
-  background: #e4eaf5;
-  box-shadow: 0 4px 12px rgba(28, 54, 105, 0.1);
 }
 
 .schedule-row:hover {
@@ -1853,26 +1496,6 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   color: #ffffff;
 }
 
-.checklist-tabs {
-  border: 1px solid #d6dde8;
-  background: #e9edf3;
-}
-
-.checklist-tabs button {
-  color: #536176;
-}
-
-.checklist-tabs button.active {
-  background: #273c5c;
-  color: #ffffff;
-  box-shadow: none;
-}
-
-.checklist-tabs button span {
-  color: inherit;
-  opacity: 0.75;
-}
-
 .progress-track span {
   background: #16856b;
 }
@@ -1893,11 +1516,11 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
 
 /* Single authoritative workspace layout. */
 .workspace-grid{grid-template-columns:280px minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr)}
-.workspace-grid>.schedule-section{min-width:0;min-height:0;padding:22px 18px;border-right:1px solid #edf0f5;overflow:auto}
+.workspace-grid>.schedule-section{min-width:0;min-height:0;padding:24px 20px;border-right:1px solid #edf0f5;overflow:auto}
 .center-column{min-width:0;min-height:0;display:flex;flex-direction:column;border-right:1px solid #edf0f5;overflow:hidden}
-.overview-section{display:flex;flex:1;min-height:0;flex-direction:column;padding:24px 26px;overflow:hidden}
-.overview-title-row h2{margin-top:5px}.overview-summary{display:flex;min-height:26px;align-items:center;justify-content:space-between;gap:12px;color:#78869b;font-size:10px}.overview-summary strong{color:#16856b;font-size:10px}.overview-groups{display:flex;min-height:0;flex:1;flex-direction:column;gap:8px;margin:14px -5px 0 0;padding-right:5px;overflow:auto}.overview-group{flex:0 0 auto;overflow:hidden;border:1px solid #dfe5ee;border-radius:12px;background:#fff;transition:border-color .18s,box-shadow .18s}.overview-group.expanded{border-color:#c9d6ee;box-shadow:0 4px 12px rgba(39,60,92,.05)}.overview-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#f7f8fa}.overview-group-heading>div{display:flex;min-width:0;align-items:center;gap:9px}.overview-group-heading span{flex:0 0 auto;color:#315cbb;font-size:8px;font-weight:900;letter-spacing:.12em}.overview-group-heading strong{overflow:hidden;color:#182c49;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.overview-group-heading small{flex:0 0 auto;color:#6f7d91;font-size:10px;font-weight:800}.event-group-heading{padding:0 8px 0 0}.overview-toggle{display:grid;min-width:0;flex:1;grid-template-columns:18px 38px minmax(0,1fr) auto;align-items:center;gap:8px;padding:11px 8px 11px 12px;border:0;background:transparent;text-align:left;cursor:pointer}.overview-toggle:hover{background:#f0f3f8}.overview-toggle .accordion-arrow{color:#315cbb;font-size:18px;line-height:1;letter-spacing:0}.overview-toggle .event-time-label{color:#5f7087;font-size:9px;letter-spacing:0}.overview-detail-button{flex:0 0 auto;padding:6px 8px;border:1px solid #d5deeb;border-radius:7px;background:#fff;color:#315cbb;font-size:9px;font-weight:700;cursor:pointer}.overview-detail-button:hover{border-color:#315cbb;background:#eef3ff}.overview-list{margin:0;padding:3px 10px 6px}.overview-list .todo-row{min-height:38px}.overview-group-empty{padding:13px;color:#96a1b1;font-size:10px}.overview-empty{flex:1}.overview-editor{flex:0 0 auto;margin-top:14px}.all-day-time strong{display:inline-flex;padding:3px 7px;border-radius:6px;background:#e8eefb;color:#315cbb;font-size:9px}.unified-schedule-list{display:flex;flex-direction:column;gap:3px}
-.embedded-detail{flex:1;min-height:0;border:0;border-radius:0;box-shadow:none}
+.overview-section{display:flex;flex:1;min-height:0;flex-direction:column;overflow:hidden}
+.overview-summary{display:flex;min-height:26px;align-items:center;justify-content:space-between;gap:12px;color:#78869b;font-size:10px}.overview-summary strong{color:#16856b;font-size:10px}.overview-groups{display:flex;min-height:0;flex:1;flex-direction:column;gap:8px;margin:14px -5px 0 0;padding-right:5px;overflow:auto}.overview-group{flex:0 0 auto;overflow:hidden;border:1px solid #dfe5ee;border-radius:12px;background:#fff;transition:border-color .18s,box-shadow .18s}.overview-group.expanded{border-color:#c9d6ee;box-shadow:0 4px 12px rgba(39,60,92,.05)}.overview-group-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#f7f8fa}.overview-group-heading>div{display:flex;min-width:0;align-items:center;gap:9px}.overview-group-heading span{flex:0 0 auto;color:#315cbb;font-size:8px;font-weight:900;letter-spacing:.12em}.overview-group-heading strong{overflow:hidden;color:#182c49;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.overview-group-heading small{flex:0 0 auto;color:#6f7d91;font-size:10px;font-weight:800}.event-group-heading{padding:0 8px 0 0}.overview-toggle{display:grid;min-width:0;flex:1;grid-template-columns:18px 38px minmax(0,1fr) auto;align-items:center;gap:8px;padding:11px 8px 11px 12px;border:0;background:transparent;text-align:left;cursor:pointer}.overview-toggle:hover{background:#f0f3f8}.overview-toggle .accordion-arrow{color:#315cbb;font-size:18px;line-height:1;letter-spacing:0}.overview-toggle .event-time-label{color:#5f7087;font-size:9px;letter-spacing:0}.overview-detail-button{flex:0 0 auto;padding:6px 8px;border:1px solid #d5deeb;border-radius:7px;background:#fff;color:#315cbb;font-size:9px;font-weight:700;cursor:pointer}.overview-detail-button:hover{border-color:#315cbb;background:#eef3ff}.overview-list{margin:0;padding:3px 10px 6px}.overview-list .todo-row{min-height:38px}.overview-group-empty{padding:13px;color:#96a1b1;font-size:10px}.overview-empty{flex:1}.overview-editor{flex:0 0 auto;margin-top:14px}.all-day-time strong{display:inline-flex;padding:3px 7px;border-radius:6px;background:#e8eefb;color:#315cbb;font-size:9px}.unified-schedule-list{display:flex;flex-direction:column;gap:3px}
+.embedded-detail{flex:1;min-height:0}
 .checklist-column{min-width:0;min-height:0;overflow:hidden}
 .checklist-column .todo-section{height:100%;border:0;padding:24px 22px;overflow:auto}
 .checklist-column .memo-section{display:flex;height:100%;min-height:0;flex-direction:column;padding:24px 22px;border:0;overflow:hidden}.checklist-column .memo-section textarea{flex:1;min-height:160px}
@@ -1909,7 +1532,7 @@ onBeforeUnmount(() => { controller?.abort(); generation++; window.removeEventLis
   .workspace-grid .unified-schedule-list{display:flex;flex-direction:row;gap:8px;overflow:auto}.workspace-grid .schedule-row{min-width:260px}
 }
 @media(max-width:700px){
-  .workspace-grid{display:flex;flex-direction:column;overflow:auto}.workspace-grid>.schedule-section{flex:0 0 auto;min-height:280px;border-right:0}.center-column{flex:0 0 auto;min-height:520px;border-right:0;border-bottom:1px solid #edf0f5;overflow:visible}.overview-section{min-height:520px}.embedded-detail{min-height:620px}.checklist-column{flex:0 0 auto;min-height:420px;overflow:visible}.checklist-column .todo-section,.checklist-column .memo-section{height:auto;min-height:420px}.workspace-grid .unified-schedule-list{display:block}.workspace-grid .schedule-row{min-width:0}
+  .today-page{height:auto;min-height:100%}.workspace-grid{display:flex;overflow:visible;flex-direction:column}.workspace-grid>.schedule-section{flex:0 0 auto;min-height:0;border-right:0}.center-column{flex:0 0 auto;min-height:0;border-right:0;border-bottom:1px solid #edf0f5;overflow:visible}.overview-section{min-height:420px}.embedded-detail{height:auto}.embedded-detail :deep(.workspace-body),.embedded-detail :deep(.information-pane){overflow:visible}.checklist-column{flex:0 0 auto;min-height:0;overflow:visible}.checklist-column .todo-section,.checklist-column .memo-section{height:auto;min-height:360px}.workspace-grid .unified-schedule-list{display:block}.workspace-grid .schedule-row{min-width:0}
 }
 
 </style>

@@ -12,16 +12,6 @@ async function findByDate(userId, date) {
 }
 
 
-async function findByEventId(userId, eventId) {
-  const result = await dao.query(
-    checklistSql.FIND_BY_EVENT_ID,
-    [userId, eventId]
-  )
-
-  return result.rows
-}
-
-
 async function getNextSortOrder(userId, date) {
   const result = await dao.query(
     checklistSql.GET_NEXT_SORT_ORDER,
@@ -54,28 +44,6 @@ async function insertChecklist(
 }
 
 
-async function updateChecklist(
-  userId,
-  checklistId,
-  title,
-  targetDate,
-  sortOrder
-) {
-  const result = await dao.query(
-    checklistSql.UPDATE_CHECKLIST,
-    [
-      title,
-      targetDate,
-      sortOrder,
-      checklistId,
-      userId
-    ]
-  )
-
-  return result.rows[0]
-}
-
-
 async function updateStatus(
   userId,
   checklistId,
@@ -90,6 +58,11 @@ async function updateStatus(
     ]
   )
 
+  return result.rows[0]
+}
+
+async function updateTitle(userId, checklistId, title) {
+  const result = await dao.query(checklistSql.UPDATE_TITLE, [title, checklistId, userId])
   return result.rows[0]
 }
 
@@ -112,10 +85,9 @@ async function deleteChecklist(
 
 module.exports = {
   findByDate,
-  findByEventId,
   getNextSortOrder,
   insertChecklist,
-  updateChecklist,
   updateStatus,
+  updateTitle,
   deleteChecklist
 }

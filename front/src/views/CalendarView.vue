@@ -17,25 +17,8 @@
       </div>
     </header>
 
-    <main v-if="detailEvent" class="calendar-focus-layout">
-      <aside class="calendar-focus-agenda">
-        <button class="focus-return" @click="closeFocus">← 月間カレンダーへ</button>
-        <span class="page-label">DAY AGENDA</span>
-        <h2>{{ selectedDateTitle }}</h2>
-        <div class="focus-event-list">
-          <button v-for="event in selectedEvents" :key="event.key"
-            :class="{active:event.key===detailEvent.key}" @click="openFocus(event)">
-            <span>{{ event.allDay ? '終日' : event.startTime }}</span>
-            <strong>{{ event.title }}</strong>
-            <small>{{ eventProgressLabel(event) }}</small>
-          </button>
-        </div>
-      </aside>
-      <EventWorkspace :key="detailEvent.key" :event="detailEvent" @close="closeFocus" @changed="handleEventChange" />
-    </main>
-
-    <main v-show="!detailEvent" class="calendar-shell">
-      <section class="month-panel" @wheel="handleCalendarWheel">
+    <main class="calendar-shell ui-surface">
+      <section class="month-panel">
         <p v-if="error" class="load-error" role="alert">{{ error }} <button @click="loadMonth">再試行</button></p>
         <p v-if="loading" class="loading-note" role="status">読み込み中...</p>
         <FullCalendar ref="calendarRef" :options="calendarOptions" />
@@ -98,11 +81,10 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { API_ORIGIN } from '../utils/http'
-const EventWorkspace = defineAsyncComponent(() => import('../components/EventWorkspace.vue'))
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -116,7 +98,6 @@ const calendarRef = ref(null)
 const displayedMonth = ref(new Date(initial.getFullYear(), initial.getMonth(), 1))
 const selectedDate = ref(initial)
 const events = ref([])
-const detailEvent = ref(null)
 const selectedTasks = ref([])
 const selectedMemo = ref('')
 const loading = ref(false)
@@ -126,8 +107,6 @@ const detailError = ref('')
 let range = null
 let monthRequest
 let detailRequest
-let wheelLock = false
-let wheelLockTimer
 const monthInput = computed(() => dateKey(displayedMonth.value).slice(0,7))
 const selectedDateKey = computed(() => dateKey(selectedDate.value))
 const selectedDateTitle = computed(() => new Intl.DateTimeFormat('ja-JP', { month: 'long', day: 'numeric', weekday: 'short' }).format(selectedDate.value))
@@ -143,7 +122,7 @@ function calendarEventTitle(event) {
 }
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, interactionPlugin], locale: jaLocale, initialView: 'dayGridMonth',
-  initialDate: initial, headerToolbar: false, height: '100%', fixedWeekCount: true,
+  initialDate: initial, headerToolbar: false, height: '100%', fixedWeekCount: false,
   dayMaxEvents: 2, editable: false, eventStartEditable: false,
   events: events.value.map(event => ({ ...toCalendarInput(event), title: calendarEventTitle(event) })),
   dayCellClassNames: info => dateKey(info.date) === selectedDateKey.value ? ['selected-date'] : [],
@@ -179,27 +158,35 @@ async function loadMonth() {
     })
     if (!request.signal.aborted) {
       events.value = response.data.map(event => ({ ...mapEvent(event), checklists: [] }))
-      const keys = [...new Set(events.value.flatMap(event => [event.key, event.id]))]
-      if (keys.length) {
-        const rows = []
-        for (let i = 0; i < keys.length; i += 1000) {
-          const batch = await axios.post(API_ORIGIN + '/api/checklists/event-batch', { keys: keys.slice(i, i + 1000) }, {
-            withCredentials: true, signal: request.signal
-          })
-          rows.push(...batch.data)
-        }
-        for (const event of events.value) {
-          event.checklists = rows.filter(item => item.event_id === event.key || item.event_id === event.id).map(item => ({
-            id:item.checklist_id,title:item.title,completed:item.is_completed,eventId:item.event_id
-          }))
-        }
-      }
-      const requested=events.value.find(event=>event.key===route.query.event)
-      if(requested)detailEvent.value=requested
+      await loadEventChecklists(request)
     }
   } catch (err) {
     if (!axios.isCancel(err)) error.value = '予定を読み込めませんでした。接続を確認して再試行してください。'
   } finally { if (monthRequest === request) loading.value = false }
+}
+
+async function loadEventChecklists(request) {
+  const keys = [...new Set(events.value.flatMap(event => [event.key, event.id]))]
+  if (!keys.length) return
+  try {
+    const rows = []
+    for (let i = 0; i < keys.length; i += 1000) {
+      const batch = await axios.post(API_ORIGIN + '/api/checklists/event-batch', { keys: keys.slice(i, i + 1000) }, {
+        withCredentials: true, signal: request.signal
+      })
+      rows.push(...batch.data)
+    }
+    for (const event of events.value) {
+      event.checklists = rows.filter(item => item.event_id === event.key || item.event_id === event.id).map(item => ({
+        id:item.checklist_id,title:item.title,completed:item.is_completed,eventId:item.event_id
+      }))
+    }
+  } catch (err) {
+    if (axios.isCancel(err)) throw err
+    // Checklist progress is supplementary data. Keep the successfully loaded
+    // calendar usable when this request is temporarily unavailable.
+    console.warn('Event checklist progress could not be loaded.', err)
+  }
 }
 
 function syncCalendar() { loadMonth(); loadSelectedDateData() }
@@ -236,13 +223,6 @@ function selectDay(date) {
   if (window.matchMedia('(max-width: 700px)').matches) return openDayDetail()
   loadSelectedDateData()
 }
-function handleCalendarWheel(event) {
-  if (wheelLock || Math.abs(event.deltaY) < Math.abs(event.deltaX) || Math.abs(event.deltaY) < 8) return
-  event.preventDefault()
-  wheelLock = true
-  moveMonth(event.deltaY > 0 ? 1 : -1)
-  wheelLockTimer = window.setTimeout(() => { wheelLock = false }, 350)
-}
 function moveMonth(amount) {
   const api = calendarRef.value.getApi()
   amount < 0 ? api.prev() : api.next()
@@ -264,34 +244,7 @@ function openCreateEvent() {
   router.push({ path: '/events/new', query: { date: selectedDateKey.value } })
 }
 function openFocus(event) {
-  router.replace({path:'/calendar',query:{date:selectedDateKey.value,event:event.key}})
-}
-function closeFocus() {
-  router.replace({path:'/calendar',query:{date:selectedDateKey.value}})
-}
-function handleEventChange({event,deleted,checklistOnly}) {
-  const key=event.calendarId+':'+event.id
-  const index=events.value.findIndex(item=>item.key===key)
-  if(checklistOnly){
-    if(index>=0)events.value[index].checklists=event.checklists.map(item=>({
-      id:item.checklist_id,title:item.title,completed:item.is_completed,eventId:item.event_id
-    }))
-    return
-  }
-  if(deleted) {
-    if(index>=0) events.value.splice(index,1)
-    return
-  }
-  const previous=index>=0 ? events.value[index] : null
-  const mapped={...mapEvent({
-    ...event,
-    calendarColor:event.calendarColor || previous?.calendarColor,
-    calendarForegroundColor:event.calendarForegroundColor || previous?.calendarForegroundColor
-  }),checklists:previous?.checklists || []}
-  if(index>=0) events.value.splice(index,1,mapped)
-  detailEvent.value=mapped
-  selectedDate.value=new Date(mapped.allDay?mapped.start.slice(0,10)+'T00:00:00':mapped.start)
-  calendarRef.value?.getApi().gotoDate(selectedDate.value)
+  router.push({path:'/today',query:{date:selectedDateKey.value,event:event.key}})
 }
 function openDayDetail(event) {
   router.push({ path: '/today', query: { date: selectedDateKey.value, ...(event?.key ? { event: event.key } : {}) } })
@@ -302,26 +255,13 @@ watch(() => route.query.date, value => {
   calendarRef.value?.getApi().gotoDate(selectedDate.value)
   loadSelectedDateData()
 })
-watch(() => route.query.event, value => {
-  detailEvent.value=events.value.find(event=>event.key===value)||null
-})
 onBeforeUnmount(() => {
   monthRequest?.abort()
   detailRequest?.abort()
-  if (wheelLockTimer) window.clearTimeout(wheelLockTimer)
 })
 </script>
 
 <style scoped>
-.calendar-focus-layout { flex:1; min-height:0; display:grid; grid-template-columns:minmax(210px,22%) minmax(0,1fr); gap:14px; }
-.calendar-focus-agenda { min-width:0; min-height:0; overflow:hidden; padding:20px 14px; border:1px solid #cfd8e6; border-radius:18px; background:#fff; box-shadow:0 10px 30px rgba(34,50,71,.07); }
-.calendar-focus-agenda h2 { margin:5px 7px 15px; font-size:16px; }
-.focus-return { width:100%; margin-bottom:18px; padding:9px; border:0; border-radius:8px; background:#eef2f7; color:#334b6c; cursor:pointer; font-size:11px; font-weight:700; }
-.focus-event-list { display:flex; flex-direction:column; gap:5px; max-height:calc(100% - 100px); overflow:auto; }
-.focus-event-list button { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:7px; padding:11px 8px; border:1px solid transparent; border-radius:9px; background:transparent; color:#58677a; text-align:left; cursor:pointer; }
-.focus-event-list button.active { border-color:#315cbb; background:#eaf0fb; color:#243b61; }
-.focus-event-list span,.focus-event-list small { font-size:9px; }.focus-event-list strong { overflow:hidden; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
-@media(max-width:1150px){.calendar-focus-layout{grid-template-columns:1fr}.calendar-focus-agenda{min-height:auto}.focus-event-list{flex-direction:row;max-height:none}.focus-event-list button{min-width:190px}.calendar-focus-layout :deep(.event-workspace){min-height:720px}}
 .calendar-page { width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; color: #243247; }
 .calendar-header { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
 .page-label { display: block; margin-bottom: 4px; color: #667892; font-size: 9px; font-weight: 800; letter-spacing: 1.7px; }
@@ -336,7 +276,7 @@ onBeforeUnmount(() => {
 .sync-button:disabled { opacity: .65; }
 .spinning { display: inline-block; animation: rotate .7s linear infinite; }
 @keyframes rotate { to { transform: rotate(360deg); } }
-.calendar-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr); overflow: hidden; border: 1px solid #cfd8e6; border-radius: 18px; background: #fff; box-shadow: 0 10px 30px rgba(34,50,71,.09); }
+.calendar-shell { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr); overflow: hidden; }
 .month-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid #dfe5ed; }
 .weekday-row, .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .weekday-row { flex: 0 0 38px; align-items: center; border-bottom: 1px solid #dfe5ed; background: #f4f6f9; color: #68768a; font-size: 10px; font-weight: 700; text-align: center; }
@@ -388,17 +328,18 @@ onBeforeUnmount(() => {
 .task-preview p { margin: 6px 0; color: #59677b; font-size: 10px; }
 .task-preview p.completed { color: #9aa4b2; text-decoration: line-through; }
 .detail-button { width: 100%; height: 40px; margin-top: 12px; border: none; border-radius: 9px; background: #273c5c; color: #fff; font-size: 11px; font-weight: 700; cursor: pointer; }
-@media (max-width: 1050px) {
-  .calendar-page { height: auto; }
+@media (max-width: 1100px) {
+  .calendar-page { height: auto; min-height: 100%; }
   .calendar-shell { grid-template-columns: 1fr; overflow: visible; }
-  .month-panel { min-height: 620px; border-right: none; border-bottom: 1px solid #dfe5ed; }
+  .month-panel { height: min(620px, calc(100dvh - 150px)); min-height: 520px; border-right: none; border-bottom: 1px solid #dfe5ed; }
   .day-panel { min-height: 420px; }
 }
 @media (max-width: 700px) {
   .calendar-header { align-items: flex-start; flex-direction: column; }
   .calendar-actions { width: 100%; }
   .sync-button { margin-left: auto; }
-  .month-panel { min-height: 500px; }
+  .month-panel { height: 520px; min-height: 520px; }
+  .day-panel { min-height: 360px; padding: 20px 16px; }
   .day-cell { padding: 5px; }
   .cell-events { display: none; }
   .mobile-event-dot { position: absolute; left: 50%; bottom: 7px; width: 5px; height: 5px; display: block; border-radius: 50%; background: #315cbb; }
@@ -411,6 +352,6 @@ onBeforeUnmount(() => {
 .month-panel :deep(.selected-date) { background: #e9eef7; box-shadow: inset 0 0 0 2px #315cbb; }
 .month-panel :deep(.fc-event) { cursor: pointer; }
 .load-error { padding: 8px; color: #a03232; background: #fff0ed; font-size: 12px; }
+.month-panel > .load-error { position:absolute; z-index:4; top:12px; left:12px; right:12px; margin:0; box-shadow:0 4px 12px rgba(87,35,35,.12); }
 .loading-note { position: absolute; z-index: 3; top: 25px; right: 22px; background: #273c5c; color: white; padding: 5px 9px; border-radius: 5px; font-size: 11px; }
-@media(max-width:1050px) { .month-panel { height: 620px; } }
 </style>

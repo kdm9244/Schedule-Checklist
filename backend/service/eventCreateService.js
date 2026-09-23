@@ -43,6 +43,7 @@ function googleBody(data, id, hash) {
 
 // Dependency injection permits real DB transactions with a fake Google boundary in tests.
 async function createEvent(userId, tokens, input, deps = {}) {
+  if (!deps.pool) await require('./checklistSchemaService').ensureSchema()
   const data = validateEvent(input)
   const calendar = deps.calendar || createCalendar(tokens)
   const db = deps.pool || pool

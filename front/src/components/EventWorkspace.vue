@@ -1,16 +1,16 @@
 <template>
   <section v-bind="$attrs" class="event-workspace" aria-labelledby="workspace-title">
-    <header class="workspace-header">
-      <button class="back-button" :disabled="busy" @click="requestClose">← 一日の予定へ</button>
-      <div class="workspace-heading">
-        <span class="eyebrow">EVENT FOCUS</span>
-        <h2 id="workspace-title">{{ editing ? '予定を編集' : detail?.summary || event.title }}</h2>
-      </div>
-      <div v-if="detail && !editing && detail.canEdit" class="header-actions">
-        <button class="danger-link" @click="confirmDelete=true; error=''">削除</button>
-        <button class="primary" @click="beginEdit">編集</button>
-      </div>
-    </header>
+    <div class="event-workspace-header">
+      <WorkspaceSectionHeader eyebrow="EVENT FOCUS" :title="editing ? '予定を編集' : detail?.summary || event.title" heading-id="workspace-title">
+        <template #actions>
+          <button class="back-button" :disabled="busy" @click="requestClose">一覧へ</button>
+          <template v-if="detail && !editing && detail.canEdit">
+            <button class="danger-link" @click="confirmDelete=true; error=''">削除</button>
+            <button class="primary" @click="beginEdit">編集</button>
+          </template>
+        </template>
+      </WorkspaceSectionHeader>
+    </div>
 
     <div :class="['workspace-body',{'without-checklist':!showChecklist}]" :aria-busy="loading || busy">
       <div v-if="loading" class="loading-state" role="status">予定を読み込んでいます...</div>
@@ -20,34 +20,38 @@
       </div>
 
       <template v-else>
-        <article ref="informationPane" class="information-pane">
+        <article ref="informationPane" class="information-pane workspace-pane-content">
           <p v-if="error" class="error" role="alert">{{ error }}</p>
 
           <template v-if="!editing">
-            <div class="badges">
-              <span>{{ detail.calendarName || 'Google Calendar' }}</span>
-              <span v-if="detail.recurringEventId">繰り返し · この1回</span>
-              <span v-if="!detail.canEdit">閲覧のみ</span>
-              <span v-if="showChecklist" :class="allPrepared ? 'ready' : 'needs-work'">
-                {{ allPrepared ? '準備完了' : '準備 ' + completed + '/' + checklistItems.length }}
-              </span>
+            <div class="detail-stack">
+              <section class="workspace-content-card detail-card">
+                <div class="workspace-content-card-header">
+                  <div><span>EVENT INFORMATION</span><strong>予定情報</strong></div>
+                  <div class="badges">
+                    <span>{{ detail.calendarName || 'Google Calendar' }}</span>
+                    <span v-if="detail.recurringEventId">繰り返し · この1回</span>
+                    <span v-if="!detail.canEdit">閲覧のみ</span>
+                  </div>
+                </div>
+                <dl>
+                  <dt>日時</dt><dd>{{ dateSummary }}</dd>
+                  <dt v-if="detail.location">場所</dt><dd v-if="detail.location">{{ detail.location }}</dd>
+                </dl>
+              </section>
+              <section class="workspace-content-card description">
+                <div class="workspace-content-card-header"><div><span>DESCRIPTION</span><strong>説明</strong></div></div>
+                <div class="description-body">
+                  <p>{{ description.text || '説明はありません。' }}</p>
+                  <ul v-if="description.links.length">
+                    <li v-for="link in description.links" :key="link.url">
+                      <a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.text }} ↗</a>
+                    </li>
+                  </ul>
+                </div>
+              </section>
+              <p v-if="!detail.canEdit" class="notice">この予定は閲覧専用です。</p>
             </div>
-            <h3 class="event-name">{{ detail.summary || 'タイトルなし' }}</h3>
-            <dl>
-              <dt>日時</dt><dd>{{ dateSummary }}</dd>
-              <dt v-if="detail.location">場所</dt><dd v-if="detail.location">{{ detail.location }}</dd>
-            </dl>
-            <section class="description">
-              <h4>説明</h4>
-              <p>{{ description.text || '説明はありません。' }}</p>
-              <ul v-if="description.links.length">
-                <li v-for="link in description.links" :key="link.url">
-                  <a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.text }} ↗</a>
-                </li>
-              </ul>
-            </section>
-            <p v-if="detail.canEdit" class="notice">変更は Google Calendar にも反映されます。参加者がいる場合は通知が送られます。</p>
-            <p v-else class="notice">この予定は閲覧専用です。</p>
           </template>
 
           <form v-else id="event-workspace-edit" @submit.prevent="save">
@@ -82,10 +86,10 @@
             <strong>{{ completed }}/{{ checklistItems.length }}</strong>
           </div>
           <progress :value="completed" :max="checklistItems.length || 1"></progress>
-          <p class="checklist-guide">{{ allPrepared ? '✓ すべて準備できました' : 'この予定までに必要なこと' }}</p>
+          <p v-if="allPrepared" class="checklist-guide">✓ すべて準備できました</p>
 
           <div v-if="!checklistItems.length" class="empty-checklist">
-            <span>✓</span><strong>準備項目はありません</strong><p>必要なものを下から追加できます。</p>
+            <span>✓</span><strong>準備項目はありません</strong>
           </div>
           <div v-else class="checklist-list">
             <div v-for="(item,index) in checklistItems" :key="item.checklist_id"
@@ -95,11 +99,11 @@
               <span :class="{completed:item.is_completed}">{{ item.title }}</span>
               <button :disabled="index===0 || checklistBusy" aria-label="上へ移動" @click="moveChecklist(index,index-1)">↑</button>
               <button :disabled="index===checklistItems.length-1 || checklistBusy" aria-label="下へ移動" @click="moveChecklist(index,index+1)">↓</button>
-              <button class="remove-item" :disabled="checklistBusy" aria-label="削除" @click="deleteChecklist(item)">×</button>
+              <button class="edit-item" :disabled="checklistBusy" aria-label="編集" @click="openChecklistEditor(item)">✎</button>
             </div>
           </div>
           <div class="add-checklist">
-            <input v-model="newTitle" maxlength="200" placeholder="準備するものを入力..." :disabled="checklistBusy" @keydown.enter.prevent="addChecklist">
+            <input ref="checklistInput" v-model="newTitle" maxlength="200" placeholder="準備するものを入力..." :disabled="checklistBusy" @keydown.enter.prevent="addChecklist">
             <button class="primary" :disabled="checklistBusy || !newTitle.trim()" @click="addChecklist">＋ 追加</button>
           </div>
           <p v-if="checklistError" class="error" role="alert">{{ checklistError }}</p>
@@ -107,6 +111,9 @@
       </template>
     </div>
   </section>
+
+  <ChecklistEditModal v-if="editingChecklist" :title="editingChecklist.title" :busy="checklistBusy" :error="checklistEditError"
+    @close="closeChecklistEditor" @save="saveChecklistEdit" @delete="deleteChecklistEdit" />
 
   <Teleport to="body">
     <div v-if="confirmDelete" class="modal-backdrop" @click.self="confirmDelete=false" @keydown.esc="confirmDelete=false">
@@ -131,6 +138,8 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import axios from 'axios'
 import { API_ORIGIN } from '../utils/http'
 import { readableDescription, editDraft, editPayload } from '../utils/eventDetail'
+import ChecklistEditModal from './ChecklistEditModal.vue'
+import WorkspaceSectionHeader from './WorkspaceSectionHeader.vue'
 
 defineOptions({inheritAttrs:false})
 
@@ -141,6 +150,8 @@ const informationPane=ref(null)
 const editing=ref(false),confirmDelete=ref(false),discardConfirm=ref(false),discardTarget=ref('view'),pending=ref(null),conflict=ref(false)
 const deleteCancel=ref(null)
 const newTitle=ref(''),checklistBusy=ref(false),checklistError=ref(''),dragIndex=ref(null)
+const checklistInput=ref(null)
+const editingChecklist=ref(null),checklistEditError=ref('')
 const timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone
 const eventApi=axios.create({baseURL:API_ORIGIN+'/api/calendar/event',withCredentials:true})
 const api=axios.create({baseURL:API_ORIGIN+'/api',withCredentials:true})
@@ -204,13 +215,24 @@ async function addChecklist(){
   const title=newTitle.value.trim();if(!title||checklistBusy.value)return
   checklistBusy.value=true;checklistError.value=''
   try{const {data}=await api.post('/checklists',{title,targetDate:targetDate.value,eventId:eventKey.value});detail.value.checklists.push(data);newTitle.value='';notifyChecklist()}
-  catch(e){checklistError.value=e.response?.data?.message||'追加できませんでした。'}finally{checklistBusy.value=false}
+  catch(e){checklistError.value=e.response?.data?.message||'追加できませんでした。'}
+  finally{checklistBusy.value=false;await nextTick();checklistInput.value?.focus()}
 }
-async function deleteChecklist(item){
-  if(checklistBusy.value||!window.confirm('この準備項目を削除しますか？'))return
-  checklistBusy.value=true;checklistError.value=''
+function openChecklistEditor(item){editingChecklist.value=item;checklistEditError.value=''}
+function closeChecklistEditor(){if(!checklistBusy.value){editingChecklist.value=null;checklistEditError.value=''}}
+async function saveChecklistEdit(title){
+  if(!editingChecklist.value||checklistBusy.value)return
+  checklistBusy.value=true;checklistEditError.value=''
+  try{const {data}=await api.patch('/checklists/'+editingChecklist.value.checklist_id,{title});Object.assign(editingChecklist.value,data);notifyChecklist()}
+  catch(e){checklistEditError.value=e.response?.data?.message||'更新できませんでした。'}
+  finally{checklistBusy.value=false;if(!checklistEditError.value)closeChecklistEditor()}
+}
+async function deleteChecklistEdit(){
+  if(!editingChecklist.value||checklistBusy.value)return
+  const item=editingChecklist.value;checklistBusy.value=true;checklistEditError.value=''
   try{await api.delete('/checklists/'+item.checklist_id);detail.value.checklists.splice(detail.value.checklists.indexOf(item),1);notifyChecklist()}
-  catch{checklistError.value='削除できませんでした。'}finally{checklistBusy.value=false}
+  catch(e){checklistEditError.value=e.response?.data?.message||'削除できませんでした。'}
+  finally{checklistBusy.value=false;if(!checklistEditError.value)closeChecklistEditor()}
 }
 async function moveChecklist(from,to){
   const list=checklistItems.value
@@ -226,26 +248,24 @@ onBeforeUnmount(()=>{request?.abort();window.removeEventListener('beforeunload',
 </script>
 
 <style scoped>
-.event-workspace{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;border:1px solid #cfd8e6;border-radius:18px;background:#fff;box-shadow:0 10px 30px #22324717;color:#243247}
+.event-workspace{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden;color:var(--ui-text)}
 .workspace-body.without-checklist{grid-template-columns:minmax(0,1fr)}
 .workspace-body.without-checklist .information-pane{border-right:0}
-.workspace-header{min-height:76px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px;padding:0 24px;border-bottom:1px solid #dfe5ed}
-.workspace-heading h2{margin:4px 0 0;font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eyebrow{font-size:9px;letter-spacing:1.8px;color:#6e7c91;font-weight:800}
-.header-actions,.edit-actions,.actions{display:flex;justify-content:flex-end;gap:8px}.workspace-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr)}
-.information-pane,.checklist-pane{min-width:0;min-height:0;overflow:auto;padding:28px}.information-pane{border-right:1px solid #dfe5ed}.loading-state{grid-column:1/-1;display:grid;place-items:center;color:#718095}
-.badges{display:flex;flex-wrap:wrap;gap:7px}.badges span{padding:5px 9px;border-radius:6px;background:#edf1f6;color:#526176;font-size:11px}.badges .ready{background:#e7f4ef;color:#116b57}.badges .needs-work{background:#fff1de;color:#9a5b0b}
-.event-name{font-size:28px;line-height:1.35;overflow-wrap:anywhere;margin:22px 0}dl{display:grid;grid-template-columns:45px 1fr;gap:13px;font-size:13px}dt{color:#748095}dd{margin:0;overflow-wrap:anywhere}
-.description{margin-top:28px;padding-top:20px;border-top:1px solid #e0e5ed}.description h4{margin:0 0 12px}.description p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;font-size:14px}a{color:#315cbb}
-button{border:1px solid #cad3df;border-radius:8px;padding:9px 13px;background:#fff;color:#344962;cursor:pointer;font:inherit;font-size:12px}button:disabled{opacity:.45;cursor:default}.primary{background:#273c5c;color:#fff;border-color:#273c5c}.danger-link{color:#a73535}.danger{background:#a93030;color:#fff;border:0}.back-button{white-space:nowrap}
-.notice,small{display:block;color:#718095;font-size:11px;line-height:1.7;margin-top:16px}.error,.delete-confirm,.discard-confirm{background:#fff1ee;color:#942d2d;padding:13px;border-radius:8px;line-height:1.6;font-size:12px}
-.delete-confirm,.discard-confirm{margin-top:22px}.delete-confirm h4{margin-top:0}.edit-actions{margin-top:22px}
-fieldset{margin:0;padding:0;border:0;min-width:0}label{display:flex;flex-direction:column;gap:7px;margin:17px 0;font-size:12px;font-weight:700}input,textarea{box-sizing:border-box;width:100%;min-width:0;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;color:#243247;background:#fff}.check{flex-direction:row;align-items:center}.check input{width:auto}.date-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.checklist-pane{display:flex;flex-direction:column;background:#fbfcfe}.checklist-heading{display:flex;align-items:center;justify-content:space-between}.checklist-heading h3{margin:4px 0 0;font-size:17px}.checklist-heading strong{display:grid;place-items:center;min-width:43px;height:34px;border-radius:17px;background:#273c5c;color:#fff;font-size:12px}progress{width:100%;height:7px;margin-top:18px;accent-color:#16856b}.checklist-guide{color:#758297;font-size:11px}
-.empty-checklist{flex:1;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#7c899b;text-align:center;font-size:11px}.empty-checklist>span{font-size:26px;color:#16856b}.empty-checklist p{margin:5px}
-.checklist-list{flex:1;min-height:80px;overflow:auto;margin:10px 0}.checklist-row{display:grid;grid-template-columns:18px minmax(0,1fr) 24px 24px 24px;align-items:center;gap:5px;min-height:42px;border-bottom:1px solid #e3e8ef;font-size:12px}.checklist-row button{padding:3px;border:0;background:transparent}.checklist-row .completed{text-decoration:line-through;color:#8b96a6}.remove-item{color:#a73535!important}
+.event-workspace-header{padding:24px 26px 0}.eyebrow{font-size:9px;letter-spacing:1.8px;color:#6e7c91;font-weight:800}
+.edit-actions,.actions{display:flex;justify-content:flex-end;gap:8px}.workspace-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(310px,.85fr)}
+.information-pane,.checklist-pane{min-width:0;min-height:0;overflow:auto}.information-pane{border-right:1px solid #dfe5ed}.loading-state{grid-column:1/-1;display:grid;place-items:center;color:#718095}
+.detail-stack{display:flex;flex-direction:column;gap:14px}.detail-card .workspace-content-card-header>div:first-child,.description .workspace-content-card-header>div{display:flex;align-items:center;gap:9px}.badges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px}.badges span{padding:5px 9px;border-radius:6px;background:#edf1f6;color:#526176;font-size:10px}
+dl{display:grid;grid-template-columns:45px minmax(0,1fr);gap:13px;margin:0;padding:18px 16px;font-size:13px}dt{color:#748095}dd{margin:0;overflow-wrap:anywhere}.description-body{padding:16px}.description p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.8;font-size:13px}.description ul{margin:12px 0 0;padding-left:20px}a{color:#315cbb}
+button{border:1px solid #cad3df;border-radius:var(--ui-radius-sm);padding:9px 13px;background:var(--ui-surface);color:#344962;cursor:pointer;font:inherit;font-size:12px}button:focus-visible{outline:none;box-shadow:var(--ui-focus)}button:disabled{opacity:.45;cursor:default}.primary{background:var(--ui-primary);color:#fff;border-color:var(--ui-primary)}.danger-link{color:var(--ui-danger)}.danger{background:var(--ui-danger);color:#fff;border:0}.back-button{white-space:nowrap}
+.notice,small{display:block;color:#718095;font-size:11px;line-height:1.7;margin-top:16px}.error,.discard-confirm{background:#fff1ee;color:#942d2d;padding:13px;border-radius:8px;line-height:1.6;font-size:12px}
+.discard-confirm{margin-top:22px}.edit-actions{margin-top:22px}
+fieldset{margin:0;padding:0;border:0;min-width:0}label{display:flex;flex-direction:column;gap:7px;margin:17px 0;font-size:12px;font-weight:700}input,textarea{box-sizing:border-box;width:100%;min-width:0;padding:10px;border:1px solid #cbd5e1;border-radius:9px;font:inherit;color:var(--ui-text);background:var(--ui-surface);outline:none}input:focus,textarea:focus{border-color:var(--ui-primary);box-shadow:var(--ui-focus)}.check{flex-direction:row;align-items:center}.check input{width:auto}.date-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.checklist-pane{display:flex;flex-direction:column;padding:28px;background:#fbfcfe}.checklist-heading{display:flex;align-items:center;justify-content:space-between}.checklist-heading h3{margin:4px 0 0;font-size:17px}.checklist-heading strong{display:grid;place-items:center;min-width:43px;height:34px;border-radius:17px;background:#273c5c;color:#fff;font-size:12px}progress{width:100%;height:7px;margin-top:18px;accent-color:#16856b}.checklist-guide{color:#758297;font-size:11px}
+.empty-checklist{flex:1;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#7c899b;text-align:center;font-size:11px}.empty-checklist>span{font-size:26px;color:#16856b}
+.checklist-list{flex:1;min-height:80px;overflow:auto;margin:10px 0}.checklist-row{display:grid;grid-template-columns:18px minmax(0,1fr) 24px 24px 24px;align-items:center;gap:5px;min-height:42px;border-bottom:1px solid #e3e8ef;font-size:12px}.checklist-row button{padding:3px;border:0;background:transparent}.checklist-row .completed{text-decoration:line-through;color:#8b96a6}.edit-item{color:#315cbb!important}
 .add-checklist{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;padding-top:14px;border-top:1px solid #dfe5ed}.add-checklist input{height:39px}.add-checklist button{white-space:nowrap}
-@media(max-width:1050px){.workspace-body:not(.without-checklist){grid-template-columns:1fr}.workspace-body:not(.without-checklist) .information-pane{border-right:0;border-bottom:1px solid #dfe5ed;overflow:visible}.event-workspace:has(.workspace-body:not(.without-checklist)){height:auto;overflow:visible}.checklist-pane{min-height:420px}.workspace-header{background:#fff}}
-@media(max-width:650px){.workspace-header{grid-template-columns:1fr auto;padding:12px 16px}.workspace-heading{grid-column:1/-1;grid-row:1}.back-button{grid-column:1;grid-row:2}.header-actions{grid-column:2;grid-row:2}.information-pane,.checklist-pane{padding:20px}.date-fields{grid-template-columns:1fr}.event-name{font-size:23px}}
+@media(max-width:1050px){.workspace-body:not(.without-checklist){grid-template-columns:1fr}.workspace-body:not(.without-checklist) .information-pane{border-right:0;border-bottom:1px solid #dfe5ed;overflow:visible}.event-workspace:has(.workspace-body:not(.without-checklist)){height:auto;overflow:visible}.checklist-pane{min-height:420px}}
+@media(max-width:700px){.event-workspace-header{padding:20px 18px 0}.checklist-pane{padding:20px}.date-fields{grid-template-columns:1fr}}
 .modal-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(18,28,43,.55)}
 .delete-modal{width:min(430px,100%);padding:28px;border-radius:18px;background:#fff;box-shadow:0 24px 70px rgba(10,20,35,.28);color:#243247;text-align:center}
 .delete-icon{display:grid;place-items:center;width:44px;height:44px;margin:0 auto 14px;border-radius:50%;background:#fff0ed;color:#b53b31;font-size:24px;font-weight:800}

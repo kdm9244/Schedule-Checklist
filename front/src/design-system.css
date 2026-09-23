@@ -1,0 +1,72 @@
+:root {
+  --ui-bg: #eef1f5;
+  --ui-surface: #ffffff;
+  --ui-surface-soft: #f7f8fa;
+  --ui-text: #243247;
+  --ui-primary: #315cbb;
+  --ui-danger: #b33b32;
+  --ui-border: #cfd8e6;
+  --ui-divider: #e3e8ef;
+  --ui-radius-sm: 8px;
+  --ui-radius-md: 12px;
+  --ui-radius-lg: 18px;
+  --ui-shadow: 0 10px 30px rgba(34, 50, 71, .09);
+  --ui-focus: 0 0 0 3px rgba(49, 92, 187, .12);
+}
+
+.ui-surface {
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+  box-shadow: var(--ui-shadow);
+}
+
+.workspace-section-header {
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--ui-divider);
+}
+.workspace-section-copy { min-width: 0; }
+.workspace-section-eyebrow { display: block; margin-bottom: 6px; color: #667892; font-size: 9px; font-weight: 800; letter-spacing: .16em; }
+.workspace-section-copy h2 { overflow: hidden; margin: 0; color: #273244; font-size: 18px; line-height: 1.25; letter-spacing: -.03em; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-section-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; }
+.workspace-section-actions button { min-height: 36px; padding: 0 12px; border: 1px solid #d3dae5; border-radius: 9px; background: #fff; color: #526176; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.workspace-section-actions button:focus-visible { outline: none; box-shadow: var(--ui-focus); }
+.workspace-section-actions button:disabled { opacity: .45; cursor: default; }
+.workspace-section-actions .primary { border-color: var(--ui-primary); background: var(--ui-primary); color: #fff; }
+.workspace-section-actions .danger-link { color: var(--ui-danger); }
+
+.workspace-pane-content {
+  padding: 24px 26px;
+}
+
+.workspace-content-card {
+  overflow: hidden;
+  border: 1px solid #dfe5ee;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+}
+.workspace-content-card-header {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid #e7ebf1;
+  background: var(--ui-surface-soft);
+}
+.workspace-content-card-header strong { color: #273c5c; font-size: 11px; }
+.workspace-content-card-header span { color: #667892; font-size: 8px; font-weight: 800; letter-spacing: .12em; }
+
+@media (max-width: 700px) {
+  .ui-surface { border-radius: var(--ui-radius-md); box-shadow: none; }
+  .workspace-section-header { min-height: 56px; align-items: flex-start; }
+  .workspace-section-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .workspace-section-copy h2 { font-size: 17px; }
+  .workspace-pane-content { padding: 20px 18px; }
+}

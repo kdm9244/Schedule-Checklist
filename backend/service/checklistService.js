@@ -1,25 +1,16 @@
 const checklistMapper =
   require('../database/mappers/checklistMapper')
+const { ensureSchema } = require('./checklistSchemaService')
 
 
 async function getChecklistsByDate(
   userId,
   date
 ) {
+  await ensureSchema()
   return await checklistMapper.findByDate(
     userId,
     date
-  )
-}
-
-
-async function getChecklistsByEvent(
-  userId,
-  eventId
-) {
-  return await checklistMapper.findByEventId(
-    userId,
-    eventId
   )
 }
 
@@ -28,6 +19,7 @@ async function createChecklist(
   userId,
   data
 ) {
+  await ensureSchema()
   const {
     eventId = null,
     title,
@@ -56,26 +48,12 @@ async function createChecklist(
 }
 
 
-async function updateChecklist(
-  userId,
-  checklistId,
-  data
-) {
-  return await checklistMapper.updateChecklist(
-    userId,
-    checklistId,
-    data.title,
-    data.targetDate,
-    data.sortOrder
-  )
-}
-
-
 async function updateChecklistStatus(
   userId,
   checklistId,
   completed
 ) {
+  await ensureSchema()
   return await checklistMapper.updateStatus(
     userId,
     checklistId,
@@ -83,11 +61,20 @@ async function updateChecklistStatus(
   )
 }
 
+async function updateChecklistTitle(userId, checklistId, title) {
+  await ensureSchema()
+  if (!/^\d+$/.test(String(checklistId)) || typeof title !== 'string' || !title.trim() || title.trim().length > 200) {
+    throw new Error('INVALID_CHECKLIST')
+  }
+  return await checklistMapper.updateTitle(userId, checklistId, title.trim())
+}
+
 
 async function deleteChecklist(
   userId,
   checklistId
 ) {
+  await ensureSchema()
   return await checklistMapper.deleteChecklist(
     userId,
     checklistId
@@ -97,9 +84,8 @@ async function deleteChecklist(
 
 module.exports = {
   getChecklistsByDate,
-  getChecklistsByEvent,
   createChecklist,
-  updateChecklist,
   updateChecklistStatus,
+  updateChecklistTitle,
   deleteChecklist
 }

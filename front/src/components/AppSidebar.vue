@@ -47,14 +47,14 @@
       <RouterLink
         to="/today"
         class="menu-item"
-        :title="collapsed ? '今日' : ''"
+        :title="collapsed ? 'ホーム' : ''"
       >
         <div class="menu-icon">
           ✓
         </div>
 
         <span v-if="!collapsed">
-          今日
+          ホーム
         </span>
       </RouterLink>
 
@@ -676,7 +676,7 @@ onMounted(() => {
   .user-area { justify-content: center; padding-left: 0; padding-right: 0; }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .sidebar, .sidebar.collapsed { position: fixed; inset: auto 0 0 0; z-index: 50; width: 100%; height: 62px; padding: 7px 10px; border-top: 1px solid #d7dde7; border-right: 0; }
   .sidebar-header, .sidebar-footer, .expand-button { display: none; }
   .menu { width: 100%; height: 100%; flex-direction: row; gap: 6px; }

@@ -20,23 +20,6 @@ const FIND_BY_DATE = `
   ORDER BY c.sort_order ASC, c.checklist_id ASC
 `
 
-const FIND_BY_EVENT_ID = `
-  SELECT
-    checklist_id,
-    user_id,
-    event_id,
-    title,
-    target_date,
-    is_completed,
-    sort_order,
-    created_at,
-    updated_at
-  FROM checklists
-  WHERE user_id = $1
-    AND event_id = $2
-  ORDER BY sort_order ASC, checklist_id ASC
-`
-
 const INSERT_CHECKLIST = `
   INSERT INTO checklists (
     user_id,
@@ -57,22 +40,19 @@ const INSERT_CHECKLIST = `
   RETURNING *
 `
 
-const UPDATE_CHECKLIST = `
-  UPDATE checklists
-  SET
-    title = $1,
-    target_date = $2,
-    sort_order = $3,
-    updated_at = CURRENT_TIMESTAMP
-  WHERE checklist_id = $4
-    AND user_id = $5
-  RETURNING *
-`
-
 const UPDATE_STATUS = `
   UPDATE checklists
   SET
     is_completed = $1,
+    updated_at = CURRENT_TIMESTAMP
+  WHERE checklist_id = $2
+    AND user_id = $3
+  RETURNING *
+`
+
+const UPDATE_TITLE = `
+  UPDATE checklists
+  SET title = $1,
     updated_at = CURRENT_TIMESTAMP
   WHERE checklist_id = $2
     AND user_id = $3
@@ -95,10 +75,9 @@ const GET_NEXT_SORT_ORDER = `
 
 module.exports = {
   FIND_BY_DATE,
-  FIND_BY_EVENT_ID,
   INSERT_CHECKLIST,
-  UPDATE_CHECKLIST,
   UPDATE_STATUS,
+  UPDATE_TITLE,
   DELETE_CHECKLIST,
   GET_NEXT_SORT_ORDER
 }

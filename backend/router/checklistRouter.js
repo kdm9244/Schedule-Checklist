@@ -43,31 +43,6 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.get('/event/:eventId', async (req, res) => {
-  try {
-    if (!req.session.userId) {
-      return res.status(401).json({
-        message: '로그인이 필요합니다.'
-      })
-    }
-
-    const checklists =
-      await checklistService.getChecklistsByEvent(
-        req.session.userId,
-        req.params.eventId
-      )
-
-    res.json(checklists)
-  } catch (error) {
-    console.error(error)
-
-    res.status(500).json({
-      message: '일정 체크리스트 조회 실패'
-    })
-  }
-})
-
-
 router.post('/', async (req, res) => {
   try {
 
@@ -138,6 +113,19 @@ router.patch('/:id/status', async (req, res) => {
   }
 })
 
+router.patch('/:id', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ message: 'ログインが必要です。' })
+  try {
+    const checklist = await checklistService.updateChecklistTitle(req.session.userId, req.params.id, req.body?.title)
+    if (!checklist) return res.status(404).json({ message: 'チェックリストが見つかりません。' })
+    res.json(checklist)
+  } catch (error) {
+    if (error.message === 'INVALID_CHECKLIST') return res.status(400).json({ message: 'チェックリストの内容を確認してください。' })
+    console.error('Checklist title update failed:', error.code || error.message)
+    res.status(500).json({ message: 'チェックリストを更新できませんでした。' })
+  }
+})
+
 router.delete('/:id', async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -178,12 +166,14 @@ router.post('/event-batch', async (req, res) => {
     return res.status(400).json({ message: 'Invalid event keys' })
   }
   try {
+    await require('../service/checklistSchemaService').ensureSchema()
     const result = await require('../database/DAO').query(
       'SELECT * FROM checklists WHERE user_id=$1 AND event_id=ANY($2::varchar[]) ORDER BY sort_order,checklist_id',
       [req.session.userId, keys]
     )
     res.json(result.rows)
-  } catch {
+  } catch (error) {
+    console.error('Event checklist batch read failed:', error.code || error.message)
     res.status(500).json({ message: 'チェックリストを読み込めませんでした。' })
   }
 })
