@@ -6,7 +6,7 @@ const specs = {
   tasks: { table: 'learning_tasks', id: 'task_id', fields: ['milestone_id','title','is_completed','sort_order'] },
   records: { table: 'learning_records', id: 'record_id', fields: ['milestone_id','task_id','study_date','title','body_markdown','input_mode'] },
   schedules: { table: 'learning_schedules', id: 'schedule_id', fields: ['task_id','event_id','scheduled_date'] },
-  comments: { table:'learning_comments', id:'comment_id', fields:['record_id','block_start','block_source','line_number','line_text','body'] }
+  comments: { table:'learning_comments', id:'comment_id', fields:['record_id','block_start','block_source','line_number','end_line','line_text','body'] }
 }
 const error = (status, message) => Object.assign(new Error(message), { status })
 function identifier(value) {
@@ -16,9 +16,9 @@ function identifier(value) {
 function normalize(kind, input) {
   const result = {}
   for (const key of specs[kind].fields) {
-    const value = input[key]
-    if (['block_start','line_number'].includes(key)) {
-      if (!Number.isInteger(value)||value<(key==='line_number'?1:0)||value>200000) throw error(400,'コードの位置を確認してください。')
+    const value = key==='end_line' ? input[key] ?? input.line_number : input[key]
+    if (['block_start','line_number','end_line'].includes(key)) {
+      if (!Number.isInteger(value)||value<(key==='block_start'?0:1)||value>200000) throw error(400,'コードの位置を確認してください。')
       result[key]=value
     } else if (['block_source','line_text','body'].includes(key)) {
       if(typeof value!=='string'||value.length>(key==='body'?10000:200000)||(key==='body'&&!value.trim()))throw error(400,'コメントは1〜10,000文字で入力してください。')
@@ -46,6 +46,7 @@ function normalize(kind, input) {
     }
   }
   if (kind === 'records' && !result.milestone_id) result.task_id = null
+  if(kind==='comments'&&(result.end_line<result.line_number||result.end_line>result.block_source.replace(/\n$/,'').split('\n').length||result.line_text!==result.block_source.replace(/\n$/,'').split('\n').slice(result.line_number-1,result.end_line).join('\n')))throw error(400,'コードの選択範囲を確認してください。')
   if (['roadmaps','milestones'].includes(kind) && result.start_date > result[kind==='roadmaps'?'target_date':'due_date']) throw error(400,'締切日は開始日以降にしてください。')
   return result
 }

@@ -58,3 +58,32 @@
 .line-comment p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;color:#344963}.line-comment footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}.line-comment time{font-size:11px;color:#687c94}.comment-orphan{display:block;margin-top:8px;color:#995826;font-size:12px}
 .annotated-markdown .annotation-code-line{display:flex;min-height:25px;line-height:25px}.annotated-markdown .annotation-code-line.selected{background:#dfebff}.annotated-markdown .annotation-code-text{white-space:pre;flex:1;min-width:max-content}
 .learning .annotation-line-button{flex:0 0 56px;border:0;border-right:1px solid #d9e1ec;border-radius:0;padding:0 7px;margin-right:12px;min-height:25px;background:transparent;color:#546c8b;font:12px/25px monospace;cursor:pointer}.learning .annotation-line-button:hover{background:#dbe8ff;color:#244e9b}
+
+/* Line-focused comment reading and writing. */
+.learning-annotated-layout{grid-template-columns:minmax(0,1fr) clamp(380px,30vw,460px)}
+.learning-comment-panel{padding:24px;max-height:calc(100vh - 48px);scrollbar-gutter:stable}
+.comment-tabs{display:flex;gap:4px;padding:4px;margin:20px 0;background:#edf1f7;border-radius:10px}
+.learning .comment-tabs button{flex:1;background:transparent;border:0;font-size:13px;min-height:40px;padding:8px 10px;color:#61718a}
+.learning .comment-tabs button[aria-pressed=true]{background:#fff;color:#244f9f;box-shadow:0 1px 5px #23364f14}
+.comment-tabs button span{font-size:11px;background:#eaf0fa;padding:1px 6px;border-radius:9px}
+.comment-context{border:1px solid #dae3ef;border-radius:10px;overflow:hidden;margin-bottom:18px}
+.comment-context>div{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#f3f6fc}
+.comment-context>div span{font-size:12px;color:#6a7f99}
+.comment-context pre{margin:0;padding:12px 0;overflow:auto;font:12px/1.9 monospace;background:#fafbfd}
+.comment-context pre>span{display:block;white-space:pre;padding-right:14px}.comment-context pre>span.current{background:#e0ebff;color:#204b94}
+.comment-context i{display:inline-block;width:38px;padding:0 10px;box-sizing:border-box;color:#7b8da6;font-style:normal;user-select:none}
+.comment-context .comment-orphan{padding:0 12px 12px}
+.learning .comment-add-button{width:100%;min-height:42px;border-color:#bfd0ee;color:#315cbb;background:#f6f9ff}
+.comment-compose{margin:0 0 18px;padding:0;border:0}.comment-compose textarea{min-height:190px;line-height:1.85;padding:14px;font-size:15px;overflow:hidden;resize:none}
+.comment-compose-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px}.comment-compose-footer>small{font-size:11px;color:#72829a}.comment-compose-footer .learning-actions{margin:0}
+.line-comment p{font-size:15px;line-height:1.85;margin:4px 0 18px}.line-comment.active{border-left:0;padding-left:0}
+.line-comment footer{padding-top:8px}.comment-help{line-height:1.8}
+.learning .annotation-line-button{display:inline-flex;justify-content:space-between;align-items:center}.line-comment-plus{visibility:hidden}.annotation-code-line:hover .line-comment-plus,.annotation-line-button:focus-visible .line-comment-plus,.annotation-code-line.selected .line-comment-plus{visibility:visible}.line-comment-dot{color:#315cbb;font-size:10px}
+
+.learning-annotated-layout.comments-closed{grid-template-columns:minmax(0,1fr)}
+.annotated-markdown{position:relative;padding-bottom:46px}.annotated-markdown .range-selected{background:#e0ebff}
+.learning .annotation-line-button{user-select:none;touch-action:none}
+.code-range-action{position:absolute;right:12px;z-index:3;display:flex;align-items:center;gap:8px;padding:7px;background:#fff;border:1px solid #bdd0ed;border-radius:8px;box-shadow:0 4px 12px #1d355020;font-size:12px;white-space:nowrap}
+.code-range-action span{padding:0 6px;color:#466287}.learning .code-range-action button{min-height:30px;font-size:12px;padding:4px 9px}.learning .code-range-action button:first-of-type{color:white;background:#315cbb;border-color:#315cbb}
+.comment-panel-header-actions{display:flex;align-items:center;gap:12px}.learning .comment-panel-header-actions button{min-height:30px;font-size:20px;border:0;padding:0 8px}.learning .comment-panel-toggle{display:flex;margin:0 0 18px auto;font-size:13px}
+.comment-context pre{max-height:260px;overflow:auto}

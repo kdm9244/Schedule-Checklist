@@ -55,6 +55,7 @@ test('learning SQL and CRUD in PostgreSQL temporary tables only; no migration ap
     let periods=fs.readFileSync(path.join(__dirname,'../database/migrations/002_learning_periods.sql'),'utf8').replace(/^BEGIN;|^COMMIT;/gm,'').replace(/CREATE FUNCTION (learning_\w+)/g,'CREATE FUNCTION pg_temp.$1').replace(/EXECUTE FUNCTION (learning_\w+)/g,'EXECUTE FUNCTION pg_temp.$1')
     await client.query(periods)
     await client.query(fs.readFileSync(path.join(__dirname,'../database/migrations/003_learning_comments.sql'),'utf8').replace(/^BEGIN;|^COMMIT;/gm,'').replace('CREATE TABLE learning_comments','CREATE TEMP TABLE learning_comments'))
+    await client.query(fs.readFileSync(path.join(__dirname,'../database/migrations/004_learning_comment_ranges.sql'),'utf8').replace(/^BEGIN;|^COMMIT;/gm,''))
     const users=(await client.query('INSERT INTO users DEFAULT VALUES RETURNING user_id')).rows
     const userId=users[0].user_id
     const other=(await client.query('INSERT INTO users DEFAULT VALUES RETURNING user_id')).rows[0].user_id
@@ -84,6 +85,12 @@ test('learning SQL and CRUD in PostgreSQL temporary tables only; no migration ap
     assert.equal(data.records[0].body_markdown,code)
     data=await service.save('comments',userId,null,{record_id:note,block_start:1,block_source:'  x()\n',line_number:1,line_text:'  x()',body:'このコードの説明'},db)
     const comment=data.comments[0].comment_id
+    assert.equal(data.comments[0].end_line,1)
+    data=await service.save('comments',userId,null,{record_id:note,block_start:1,block_source:'a\n  b\nc\n',line_number:1,end_line:2,line_text:'a\n  b',body:'複数行の説明'},db)
+    const rangeComment=data.comments.find(c=>c.comment_id!==comment)
+    assert.equal(rangeComment.end_line,2);assert.equal(rangeComment.line_text,'a\n  b')
+    await assert.rejects(service.save('comments',userId,null,{record_id:note,block_start:1,block_source:'a\n',line_number:1,end_line:2,line_text:'wrong',body:'Invalid'},db),{status:400})
+    await service.remove('comments',userId,rangeComment.comment_id,db)
     await assert.rejects(service.save('comments',other,null,{record_id:note,block_start:1,block_source:'  x()\n',line_number:1,line_text:'  x()',body:'Forbidden'},db),{status:404})
     data=await service.save('comments',userId,comment,{body:'説明を更新'},db)
     assert.equal(data.comments[0].body,'説明を更新')

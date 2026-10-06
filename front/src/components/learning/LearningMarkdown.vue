@@ -1,5 +1,6 @@
 <template>
-  <div ref="root" class="learning-markdown" :class="{'annotated-markdown':annotations}" @click.capture="handleClick">
+  <div ref="root" class="learning-markdown" :class="{'annotated-markdown':annotations}" @click.capture="handleClick" @pointerdown="startRange">
+    <div v-if="range" class="code-range-action" :style="{top:rangeTop+'px'}"><span>{{ range.line_number }}–{{ range.end_line }}行</span><button type="button" @click="emit('select-line',range)">＋ コメント</button><button type="button" aria-label="選択を解除" @click="range=null;paintRange()">×</button></div>
     <MdPreview v-if="readonly" :id="id" :model-value="modelValue" v-bind="options" />
     <MdEditor v-else :id="id" :model-value="modelValue" v-bind="options" :preview="true" :toolbars="toolbars" :footers="['markdownTotal','scrollAuto']" :no-prettier="true" placeholder="学んだことやコードを Markdown で記録しましょう。" @update:model-value="$emit('update:modelValue',$event)" @on-save="$emit('save')" />
   </div>
@@ -33,6 +34,13 @@ config({editorExtensions:{highlight:{instance:hljs}},editorConfig:{languageUserD
 const props=defineProps({modelValue:{type:String,default:''},readonly:Boolean,id:{type:String,default:'learning-markdown'},annotations:Boolean,comments:{type:Array,default:()=>[]},selected:Object})
 const emit=defineEmits(['update:modelValue','save','select-line','anchors'])
 const root=ref(null)
+const range=ref(null),rangeTop=ref(0)
+let drag=null,suppressClick=false
+function makeRange(pre,from,to){const source=decodeURIComponent(pre.dataset.learningSource),lines=source.replace(/\n$/,'').split('\n');const first=Math.min(from,to),last=Math.max(from,to);return {block_start:Number(pre.dataset.blockStart),block_source:source,line_number:first,end_line:last,line_text:lines.slice(first-1,last).join('\n')}}
+function paintRange(){if(!root.value)return;for(const pre of root.value.querySelectorAll('pre[data-learning-source]')){const same=range.value&&Number(pre.dataset.blockStart)===range.value.block_start&&decodeURIComponent(pre.dataset.learningSource)===range.value.block_source;for(const row of pre.querySelectorAll('.annotation-code-line')){const n=Number(row.querySelector('button')?.dataset.line);row.classList.toggle('range-selected',!!same&&n>=range.value.line_number&&n<=range.value.end_line);if(same&&n===range.value.end_line)rangeTop.value=row.getBoundingClientRect().bottom-root.value.getBoundingClientRect().top}}}
+function startRange(event){const button=event.target.closest?.('.annotation-line-button');if(!button||event.button!==0)return;event.preventDefault();const pre=button.closest('pre');drag={pre,from:Number(button.dataset.line),to:Number(button.dataset.line),pointer:event.pointerId};range.value=makeRange(pre,drag.from,drag.to);paintRange()}
+function moveRange(event){if(!drag||event.pointerId!==drag.pointer)return;const button=document.elementFromPoint(event.clientX,event.clientY)?.closest('.annotation-line-button');if(button?.closest('pre')!==drag.pre)return;drag.to=Number(button.dataset.line);range.value=makeRange(drag.pre,drag.from,drag.to);paintRange()}
+function finishRange(event){if(!drag||event.pointerId!==drag.pointer)return;const current=drag;drag=null;if(event.type==='pointercancel'){range.value=null;paintRange();return}suppressClick=!!event.target.closest?.('.annotation-line-button');if(current.from===current.to&&event.target.closest?.('.line-comment-dot'))emit('select-line',range.value)}
 let observer
 function decorate(){
   if(!props.annotations||!props.readonly||!root.value)return
@@ -47,9 +55,12 @@ function decorate(){
       anchors.push({block_start:start,block_source:source,line_number:i+1,line_text:line})
       const row=document.createElement('span');row.className='annotation-code-line'
       const button=document.createElement('button');button.type='button';button.className='annotation-line-button';button.dataset.line=String(i+1);button.setAttribute('aria-label',`${i+1}行目にコメントを追加`)
-      const count=props.comments.filter(c=>c.block_start===start&&c.block_source===source&&c.line_number===i+1).length
-      button.textContent=`${i+1} ${count?'●':'＋'}`
-      if(props.selected?.block_start===start&&props.selected?.block_source===source&&props.selected?.line_number===i+1)row.classList.add('selected')
+      const count=props.comments.filter(c=>c.block_start===start&&c.block_source===source&&c.line_number<=i+1&&(c.end_line||c.line_number)>=i+1).length
+      const number=document.createElement('span');number.textContent=String(i+1)
+      const indicator=document.createElement('span');indicator.className=count?'line-comment-dot':'line-comment-plus';indicator.textContent=count?'●':'＋'
+      if(count)button.setAttribute('aria-label',`${i+1}行目のコメント${count}件を表示`)
+      button.append(number,indicator)
+      if(props.selected?.block_start===start&&props.selected?.block_source===source&&props.selected?.line_number<=i+1&&(props.selected.end_line||props.selected.line_number)>=i+1)row.classList.add('selected')
       const text=document.createElement('span');text.className='annotation-code-text'
       text.innerHTML=DOMPurify.sanitize(language&&hljs.getLanguage(language)?hljs.highlight(line,{language}).value:hljs.highlightAuto(line).value)
       if(!line)text.textContent=' '
@@ -57,12 +68,13 @@ function decorate(){
     }))
   }
   emit('anchors',anchors)
+  paintRange()
   observer?.observe(root.value,{childList:true,subtree:true})
 }
-function handleClick(event){captureCodeSource(event);const button=event.target.closest?.('.annotation-line-button');if(!button)return;const pre=button.closest('pre');const source=decodeURIComponent(pre.dataset.learningSource),line=Number(button.dataset.line);emit('select-line',{block_start:Number(pre.dataset.blockStart),block_source:source,line_number:line,line_text:source.split('\n')[line-1]||''})}
+function handleClick(event){captureCodeSource(event);const button=event.target.closest?.('.annotation-line-button');if(!button)return;if(suppressClick){suppressClick=false;return}const pre=button.closest('pre');range.value=makeRange(pre,Number(button.dataset.line),Number(button.dataset.line));paintRange();if(event.target.closest('.line-comment-dot'))emit('select-line',range.value)}
 watch(()=>[props.modelValue,props.comments,props.selected],async()=>{await nextTick();decorate()},{deep:true})
-onMounted(async()=>{await nextTick();if(props.annotations){observer=new MutationObserver(decorate);decorate()}})
-onBeforeUnmount(()=>observer?.disconnect())
+onMounted(async()=>{await nextTick();if(props.annotations){observer=new MutationObserver(decorate);decorate();window.addEventListener('pointermove',moveRange);window.addEventListener('pointerup',finishRange);window.addEventListener('pointercancel',finishRange)}})
+onBeforeUnmount(()=>{observer?.disconnect();window.removeEventListener('pointermove',moveRange);window.removeEventListener('pointerup',finishRange);window.removeEventListener('pointercancel',finishRange)})
 const toolbars=['bold','italic','title','quote','unorderedList','orderedList','codeRow','code','link','table','-','revoke','next','=','preview','previewOnly']
 let originalCode=null
 function captureCodeSource(event){const button=event.target.closest?.('.md-editor-copy-button');if(!button)return;const block=button.closest('.md-editor-code');const source=(block?.querySelector('input:checked + pre')||block?.querySelector('pre'))?.dataset.learningSource;originalCode=source===undefined?null:decodeURIComponent(source)}
