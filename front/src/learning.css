@@ -87,3 +87,5 @@
 .code-range-action span{padding:0 6px;color:#466287}.learning .code-range-action button{min-height:30px;font-size:12px;padding:4px 9px}.learning .code-range-action button:first-of-type{color:white;background:#315cbb;border-color:#315cbb}
 .comment-panel-header-actions{display:flex;align-items:center;gap:12px}.learning .comment-panel-header-actions button{min-height:30px;font-size:20px;border:0;padding:0 8px}.learning .comment-panel-toggle{display:flex;margin:0 0 18px auto;font-size:13px}
 .comment-context pre{max-height:260px;overflow:auto}
+
+.line-comment-marker{display:inline-flex;align-items:center;gap:2px;color:#50709d;line-height:1;cursor:pointer}.line-comment-marker small{font:10px/1 monospace}.learning .annotation-line-button{flex-basis:64px}.annotation-code-line.comment-hover{background:#edf3fc}.annotation-code-line.selected,.annotation-code-line.range-selected{background:#e0ebff}
