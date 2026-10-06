@@ -35,7 +35,18 @@ const routes = [
       {
         path: 'settings',
         component: SettingsView
-      }
+      },
+      { path: 'learning/roadmaps', component: () => import('../views/RoadmapListView.vue') },
+      { path: 'learning/roadmaps/new', component: () => import('../views/LearningEntityView.vue'), meta: { entity:'roadmaps' } },
+      { path: 'learning/roadmaps/:id/edit', component: () => import('../views/LearningEntityView.vue'), meta: { entity:'roadmaps' } },
+      { path: 'learning/roadmaps/:id', component: () => import('../views/RoadmapDetailView.vue') },
+      { path: 'learning/milestones/new', component: () => import('../views/LearningEntityView.vue'), meta: { entity:'milestones' } },
+      { path: 'learning/milestones/:id', component: () => import('../views/MilestoneDetailView.vue') },
+      { path: 'learning/milestones/:id/edit', component: () => import('../views/LearningEntityView.vue'), meta: { entity:'milestones' } },
+      { path: 'learning/records/new', component: () => import('../views/LearningRecordEditView.vue') },
+      { path: 'learning/tasks/:id', component: () => import('../views/LearningTaskDetailView.vue') },
+      { path: 'learning/records/:id/edit', component: () => import('../views/LearningRecordEditView.vue') },
+      { path: 'learning/records/:id', component: () => import('../views/LearningRecordView.vue') }
     ]
   }
 ]
@@ -43,6 +54,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach(to => {
+  if (Object.hasOwn(to.query,'demo')) {
+    const query={...to.query}
+    delete query.demo
+    return {path:to.path,query,hash:to.hash,replace:true}
+  }
 })
 
 export default router

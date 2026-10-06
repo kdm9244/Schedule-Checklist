@@ -21,7 +21,7 @@ app.use(cors({
   credentials: true
 }))
 
-app.use(express.json())
+app.use(express.json({ limit:'1mb' }))
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
@@ -39,6 +39,7 @@ app.use('/api/calendar', calendarRouter)
 app.use('/api/users', userRouter)
 app.use('/api/checklists', checklistRouter)
 app.use('/api/memos', memoRouter)
+app.use('/api/learning', require('../router/learningRouter'))
 app.use('/api/checklist-templates', checklistTemplateRouter)
 
 const PORT = process.env.PORT || 3000

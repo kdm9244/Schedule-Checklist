@@ -17,6 +17,8 @@
       </div>
     </header>
 
+    <LearningStatus />
+    <div class="learning-calendar-legend"><span>▰ ロードマップ期間</span><span>▰ マイルストーン締切</span><span>▰ 学習予定</span><span>● 学習記録</span></div>
     <main class="calendar-shell ui-surface">
       <section class="month-panel">
         <p v-if="error" class="load-error" role="alert">{{ error }} <button @click="loadMonth">再試行</button></p>
@@ -35,15 +37,16 @@
 
         <p v-if="detailError" role="alert" class="load-error">{{ detailError }}</p>
         <div class="day-summary" :aria-busy="detailLoading">
-          <span>予定 <b>{{ selectedEvents.length }}</b></span>
-          <span>タスク <b>{{ completedTasks }}/{{ selectedTasks.length }}</b></span>
+          <span>一般予定 <b>{{ selectedEvents.length }}</b></span>
+          <span>日次タスク <b>{{ completedTasks }}/{{ selectedTasks.length }}</b></span>
           <span :class="{ active: selectedMemo }">メモ {{ selectedMemo ? 'あり' : 'なし' }}</span>
         </div>
 
         <div class="day-panel-content">
+          <LearningCalendarPanel :date="selectedDateKey" />
           <p v-if="detailLoading" role="status">読み込み中...</p>
           <section v-if="selectedEvents.length" class="detail-section">
-            <h3>予定</h3>
+            <h3>一般予定</h3>
             <button v-for="event in selectedEvents" :key="event.key" class="detail-event" :style="{ '--event-color':event.calendarColor }" @click="openFocus(event)">
               <span class="detail-time">{{ event.allDay ? '終日' : event.startTime }}</span>
               <span class="detail-event-body">
@@ -57,7 +60,7 @@
 
           <div v-else-if="!loading && !error" class="panel-empty">
             <div class="empty-icon">○</div>
-            <strong>この日の予定はありません</strong>
+            <strong>この日の一般予定はありません</strong>
             <span>新しい予定を追加して一日を計画しましょう。</span>
             <button @click="openCreateEvent">この日に予定を追加</button>
           </div>
@@ -74,7 +77,7 @@
           </section>
         </div>
 
-        <button class="detail-button" @click="openDayDetail">この日の詳細を見る</button>
+        <button class="detail-button" @click="openDayDetail">一般予定・日次タスクの詳細を見る</button>
       </aside>
     </main>
   </div>
@@ -90,6 +93,17 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { dateKey, validDate, mapEvent, occursOn, toCalendarInput } from '../utils/calendar'
+import { useLearning } from '../composables/useLearning'
+import LearningCalendarPanel from '../components/learning/LearningCalendarPanel.vue'
+import LearningStatus from '../components/learning/LearningStatus.vue'
+const {state:learning,load:loadLearning,save:saveLearning}=useLearning()
+function exclusiveEnd(day){const d=new Date(day+'T00:00:00');d.setDate(d.getDate()+1);return dateKey(d)}
+const learningEvents=computed(()=>[
+  ...learning.roadmaps.filter(r=>r.start_date&&r.target_date).map(r=>({id:'roadmap-'+r.roadmap_id,title:'ロードマップ · '+r.title,start:r.start_date,end:exclusiveEnd(r.target_date),allDay:true,backgroundColor:'#345db5',borderColor:'#345db5',editable:false,extendedProps:{learningType:'roadmap',roadmapId:r.roadmap_id}})),
+  ...learning.milestones.filter(m=>m.due_date).map(m=>({id:'milestone-'+m.milestone_id,title:'締切 · '+m.title,start:m.due_date,allDay:true,backgroundColor:'#d06b42',borderColor:'#d06b42',editable:false,extendedProps:{learningType:'deadline',milestoneId:m.milestone_id}})),
+  ...learning.schedules.map(s=>({id:'study-'+s.schedule_id,title:'学習 · '+(learning.tasks.find(t=>t.task_id===s.task_id)?.title||''),start:s.scheduled_date,allDay:true,backgroundColor:'#16856b',borderColor:'#16856b',editable:true,durationEditable:false,extendedProps:{learningType:'schedule',scheduleId:s.schedule_id}})),
+  ...learning.records.map(r=>({id:'record-'+r.record_id,title:'記録 · '+r.title,start:r.study_date,allDay:true,backgroundColor:'#8b5eb5',borderColor:'#8b5eb5',editable:false,extendedProps:{learningType:'record',recordId:r.record_id}}))
+])
 
 const router = useRouter()
 const route = useRoute()
@@ -123,11 +137,23 @@ function calendarEventTitle(event) {
 const calendarOptions = computed(() => ({
   plugins: [dayGridPlugin, interactionPlugin], locale: jaLocale, initialView: 'dayGridMonth',
   initialDate: initial, headerToolbar: false, height: '100%', fixedWeekCount: false,
-  dayMaxEvents: 2, editable: false, eventStartEditable: false,
-  events: events.value.map(event => ({ ...toCalendarInput(event), title: calendarEventTitle(event) })),
-  dayCellClassNames: info => dateKey(info.date) === selectedDateKey.value ? ['selected-date'] : [],
+  dayMaxEvents: 2, editable: false, eventStartEditable: true,
+  events: [...events.value.map(event => ({ ...toCalendarInput(event), title: calendarEventTitle(event), editable:false })), ...learningEvents.value],
+  dayCellClassNames: info => [ ...(dateKey(info.date) === selectedDateKey.value ? ['selected-date'] : []), ...(learning.records.some(r=>r.study_date===dateKey(info.date))?['learning-record-day']:[]) ],
+  eventDrop: async info => {
+    if(info.event.extendedProps.learningType!=='schedule'){info.revert();return}
+    try { await saveLearning('schedules',info.event.extendedProps.scheduleId,{scheduled_date:info.event.startStr.slice(0,10)}) }
+    catch { info.revert() }
+  },
   dateClick: info => selectDay(info.date),
   eventClick: info => {
+    if(info.event.extendedProps.learningType){
+      selectDay(new Date(info.event.startStr.slice(0,10)+'T00:00:00'))
+      if(info.event.extendedProps.learningType==='deadline')router.push('/learning/milestones/'+info.event.extendedProps.milestoneId)
+      if(info.event.extendedProps.learningType==='roadmap')router.push('/learning/roadmaps/'+info.event.extendedProps.roadmapId)
+      if(info.event.extendedProps.learningType==='record')router.push('/learning/records/'+info.event.extendedProps.recordId)
+      return
+    }
     const event = events.value.find(item => item.key === info.event.id)
     if (event) {
       if (!occursOn(event, selectedDateKey.value)) selectedDate.value = new Date(event.allDay ? event.start.slice(0,10) + 'T00:00:00' : event.start)
@@ -189,7 +215,7 @@ async function loadEventChecklists(request) {
   }
 }
 
-function syncCalendar() { loadMonth(); loadSelectedDateData() }
+function syncCalendar() { loadMonth(); loadSelectedDateData(); loadLearning(true).catch(()=>{}) }
 
 async function loadSelectedDateData() {
   detailRequest?.abort()
@@ -250,6 +276,7 @@ function openDayDetail(event) {
   router.push({ path: '/today', query: { date: selectedDateKey.value, ...(event?.key ? { event: event.key } : {}) } })
 }
 onMounted(loadSelectedDateData)
+onMounted(()=>loadLearning(true).catch(()=>{}))
 watch(() => route.query.date, value => {
   selectedDate.value = validDate(value) ? new Date(value + 'T00:00:00') : new Date()
   calendarRef.value?.getApi().gotoDate(selectedDate.value)
@@ -351,6 +378,7 @@ onBeforeUnmount(() => {
 .month-panel :deep(.fc) { flex: 1; min-height: 0; font-size: 12px; --fc-border-color: #e0e5ec; --fc-today-bg-color: #edf5f2; }
 .month-panel :deep(.selected-date) { background: #e9eef7; box-shadow: inset 0 0 0 2px #315cbb; }
 .month-panel :deep(.fc-event) { cursor: pointer; }
+.month-panel :deep(.learning-record-day .fc-daygrid-day-number)::after {content:'';display:inline-block;width:5px;height:5px;margin-left:5px;vertical-align:middle;border-radius:50%;background:#8b5eb5;}
 .load-error { padding: 8px; color: #a03232; background: #fff0ed; font-size: 12px; }
 .month-panel > .load-error { position:absolute; z-index:4; top:12px; left:12px; right:12px; margin:0; box-shadow:0 4px 12px rgba(87,35,35,.12); }
 .loading-note { position: absolute; z-index: 3; top: 25px; right: 22px; background: #273c5c; color: white; padding: 5px 9px; border-radius: 5px; font-size: 11px; }

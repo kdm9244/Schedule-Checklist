@@ -87,6 +87,42 @@
         </span>
       </RouterLink>
 
+      <section class="roadmap-navigation">
+        <button
+          type="button"
+          class="menu-item roadmap-toggle"
+          :class="{ 'roadmap-current': learningRoute }"
+          title="ロードマップ"
+          :aria-expanded="roadmapOpen && !collapsed"
+          aria-controls="roadmap-submenu"
+          @click="toggleRoadmaps"
+        >
+          <span class="menu-icon">◇</span>
+          <span v-if="!collapsed">ロードマップ</span>
+          <span v-if="!collapsed" class="roadmap-chevron" :class="{ open: roadmapOpen }" aria-hidden="true">⌄</span>
+        </button>
+        <Transition name="roadmap-menu">
+          <div v-if="roadmapOpen && !collapsed" id="roadmap-submenu" class="roadmap-submenu-wrap">
+            <div class="roadmap-submenu">
+              <RouterLink :to="learningDestination('/learning/roadmaps')" class="roadmap-submenu-item">一覧を見る</RouterLink>
+              <span v-if="learning.loading" class="roadmap-menu-note" role="status">読み込み中...</span>
+              <template v-if="learning.loaded && learning.roadmaps.length">
+                <span class="roadmap-group-label">マイロードマップ</span>
+                <div class="roadmap-saved-list">
+                  <RouterLink v-for="roadmap in learning.roadmaps" :key="roadmap.roadmap_id" :to="learningDestination('/learning/roadmaps/' + roadmap.roadmap_id)" class="roadmap-submenu-item roadmap-saved-item" :title="roadmap.title">
+                    <span aria-hidden="true">·</span><span>{{ roadmap.title }}</span>
+                  </RouterLink>
+                </div>
+              </template>
+              <span class="roadmap-group-label roadmap-create-label">学習を追加</span>
+              <RouterLink v-for="item in learningCreateLinks" :key="item.path" :to="learningDestination(item.path)" class="roadmap-submenu-item roadmap-create-item">
+                <span aria-hidden="true">＋</span><span>{{ item.label }}</span>
+              </RouterLink>
+            </div>
+          </div>
+        </Transition>
+      </section>
+
       <RouterLink to="/settings" class="menu-item" :title="collapsed ? '設定' : ''">
         <div class="menu-icon">⚙</div>
         <span v-if="!collapsed">設定</span>
@@ -147,12 +183,39 @@
 
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { API_ORIGIN } from '../utils/http'
+import { useLearning } from '../composables/useLearning'
+
+const learningCreateLinks = [
+  { path:'/learning/roadmaps/new', label:'ロードマップ作成' },
+  { path:'/learning/milestones/new', label:'マイルストーン作成' },
+  { path:'/learning/records/new', label:'学習記録作成' }
+]
 
 const router = useRouter()
+const route = useRoute()
+const { state:learning, load:loadLearning } = useLearning()
+const learningRoute = computed(() => route.path.startsWith('/learning/'))
+const roadmapOpen = ref(learningRoute.value)
+const learningDestination = path => path
+
+function toggleRoadmaps() {
+  // Keep the existing compact sidebar usable without squeezing nested labels.
+  if (window.matchMedia('(max-width: 1050px)').matches) {
+    router.push(learningDestination('/learning/roadmaps'))
+    return
+  }
+  if (collapsed.value) { collapsed.value=false; roadmapOpen.value=true }
+  else roadmapOpen.value=!roadmapOpen.value
+  if (roadmapOpen.value) loadLearning().catch(() => {})
+}
+
+watch(() => route.path, () => {
+  if (learningRoute.value) roadmapOpen.value=true
+})
 
 const collapsed = ref(false)
 
@@ -237,6 +300,7 @@ async function logout() {
 
 onMounted(() => {
   loadUser()
+  if (roadmapOpen.value) loadLearning().catch(() => {})
 })
 </script>
 
@@ -437,7 +501,28 @@ onMounted(() => {
   flex-direction: column;
 
   gap: 7px;
+  overflow-y: auto;
+  min-height: 0;
 }
+.menu-item { flex-shrink:0; }
+.roadmap-navigation { flex-shrink:0; }
+.roadmap-toggle { width:100%; border:0; background:transparent; font-family:inherit; cursor:pointer; text-align:left; }
+.roadmap-current { background:#eef3fc; color:#315cbb; font-weight:600; }
+.roadmap-chevron { margin-left:auto; transition:transform .2s ease; font-size:18px; }
+.roadmap-chevron.open { transform:rotate(180deg); }
+.roadmap-submenu-wrap { display:grid; grid-template-rows:1fr; }
+.roadmap-submenu { min-height:0; overflow:hidden; display:flex; flex-direction:column; gap:4px; margin:5px 0 7px 23px; padding-left:13px; border-left:1px solid #dbe3ef; }
+.roadmap-submenu-item { min-height:35px; padding:7px 9px; display:flex; align-items:center; gap:7px; border-radius:7px; color:#66758c; font-size:12px; line-height:1.5; text-decoration:none; box-sizing:border-box; }
+.roadmap-submenu-item:hover { background:#f0f4fa; color:#315cbb; }
+.roadmap-submenu-item.router-link-active { background:#eaf0fc; color:#315cbb; font-weight:600; }
+.roadmap-saved-list { max-height:180px; overflow-y:auto; }
+.roadmap-saved-item > span:last-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.roadmap-group-label,.roadmap-menu-note { padding:5px 9px; font-size:10px; color:#98a2b3; }
+.roadmap-create-label { margin-top:6px; padding-top:12px; border-top:1px solid #e5eaf2; }
+.roadmap-create-item { color:#718099; }
+.roadmap-toggle:focus-visible,.roadmap-submenu-item:focus-visible { outline:2px solid #315cbb; outline-offset:2px; }
+.roadmap-menu-enter-active,.roadmap-menu-leave-active { overflow:hidden; transition:grid-template-rows .2s ease,opacity .2s ease; }
+.roadmap-menu-enter-from,.roadmap-menu-leave-to { grid-template-rows:0fr; opacity:0; }
 
 
 .menu-item {
@@ -669,6 +754,7 @@ onMounted(() => {
 }
 
 @media (max-width: 1050px) {
+  .roadmap-submenu-wrap { display:none; }
   .sidebar { width: 76px; padding-left: 10px; padding-right: 10px; }
   .brand-text, .user-info, .menu-item > span, .logout-button > span:not(.logout-icon), .collapse-button { display: none; }
   .brand { justify-content: center; width: 100%; }
