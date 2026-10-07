@@ -19,7 +19,10 @@ export function learningError(error) {
 }
 export const learningTemplate = '## 学んだ概念\n\n\n## 実習コード\n\n```javascript\n// ここにコードを書く\n```\n\n## 実行結果\n\n\n## エラーと解決\n\n\n## 次にやること\n\n'
 function assign(data) {
-  for (const key of Object.keys(empty())) state[key]=data[key] || []
+  for (const key of Object.keys(empty())) {
+    if(key==='records'){const cached=new Map(state.records.map(r=>[r.record_id,r]));state.records=(data.records||[]).map(r=>{const previous=cached.get(r.record_id);return previous?.updated_at===r.updated_at&&typeof previous.body_markdown==='string'?{...r,body_markdown:previous.body_markdown}:r})}
+    else state[key]=data[key] || []
+  }
 }
 async function load(force=false) {
   if (pending) return pending
@@ -60,4 +63,5 @@ async function remove(kind,id) {
 async function reorder(roadmapId,ids) {
   return mutate(async()=> (await api.post('/milestones/reorder',{roadmap_id:roadmapId,ids})).data)
 }
-export function useLearning() { return {state:readonly(state),load,save,remove,reorder} }
+async function loadRecord(id){const {data}=await api.get('/records/'+id);state.records=state.records.map(r=>r.record_id===data.record_id?data:r);return data}
+export function useLearning() { return {state:readonly(state),load,save,remove,reorder,loadRecord} }

@@ -59,7 +59,8 @@ async function snapshot(userId, db = dao) {
   const entries = []
   // A transaction has a single pg client; do not queue parallel queries on it.
   for (const [kind,spec] of Object.entries(specs)) {
-    const result = await db.query(`SELECT ${projection(spec)} FROM ${spec.table} WHERE user_id=$1 ORDER BY ${spec.id}`,[userId])
+    const select=kind==='records'?'record_id,user_id,milestone_id,task_id,study_date::text AS study_date,title,input_mode,created_at,updated_at':projection(spec)
+    const result = await db.query(`SELECT ${select} FROM ${spec.table} WHERE user_id=$1 ORDER BY ${spec.id}`,[userId])
     entries.push([kind,result.rows])
   }
   return Object.fromEntries(entries)
@@ -145,4 +146,20 @@ async function reorder(userId,roadmapId,ids,db = dao) {
     return snapshot(userId,client)
   },db)
 }
-module.exports = { snapshot, save, remove, reorder, normalize, identifier }
+async function listRecords(userId,input={},db=dao){
+ const args=[userId],where=['user_id=$1']
+ const add=(sql,value)=>{args.push(value);where.push(sql.replace('?',`$${args.length}`))}
+ for(const key of ['milestone_id','task_id'])if(input[key])add(`${key}=?`,identifier(input[key]))
+ if(input.q){if(typeof input.q!=='string'||input.q.length>200)throw error(400,'検索は200文字以内で入力してください。');add("(strpos(lower(title),lower(?))>0 OR strpos(lower(body_markdown),lower(?))>0)",input.q.trim());where[where.length-1]=where[where.length-1].replace('?',`$${args.length}`)}
+ for(const [key,op] of [['from','>='],['to','<=']])if(input[key]){if(!validDate(input[key]))throw error(400,'日付を確認してください。');add(`study_date${op}?::date`,input[key])}
+ if(input.from&&input.to&&input.from>input.to)throw error(400,'日付の範囲を確認してください。')
+ if(input.mode){if(!['plain','markdown'].includes(input.mode))throw error(400,'入力形式を確認してください。');add('input_mode=?',input.mode)}
+ if(input.order&&!['newest','oldest'].includes(input.order))throw error(400,'並び順を確認してください。')
+ const requested=Number(input.page||1);if(!Number.isSafeInteger(requested)||requested<1)throw error(400,'ページを確認してください。')
+ const filter=where.join(' AND '),direction=input.order==='oldest'?'ASC':'DESC'
+ // One SQL statement gives count and page the same database snapshot.
+ const result=await db.query(`WITH filtered AS (SELECT record_id,title,study_date,input_mode,milestone_id,task_id FROM learning_records WHERE ${filter}), total AS (SELECT count(*)::int AS count FROM filtered), page_data AS (SELECT *,study_date::text AS date_text FROM filtered ORDER BY study_date ${direction},record_id ${direction} LIMIT 10 OFFSET (LEAST($${args.length+1}::bigint,GREATEST(1,ceil((SELECT count FROM total)/10.0)::bigint))-1)*10) SELECT (SELECT count FROM total) AS total,COALESCE(json_agg(json_build_object('record_id',record_id::text,'title',title,'study_date',date_text,'input_mode',input_mode,'milestone_id',milestone_id::text,'task_id',task_id::text) ORDER BY study_date ${direction},record_id ${direction}) FILTER(WHERE record_id IS NOT NULL),'[]'::json) AS records FROM page_data`,[...args,requested])
+ const row=result.rows[0],pages=Math.max(1,Math.ceil(row.total/10));return {records:row.records,total:row.total,page:Math.min(requested,pages),pages,pageSize:10}
+}
+async function getRecord(userId,id,db=dao){return owned(db,'records',userId,id)}
+module.exports = { snapshot, save, remove, reorder, normalize, identifier, listRecords, getRecord }

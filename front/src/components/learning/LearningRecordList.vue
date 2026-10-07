@@ -8,6 +8,6 @@
 </template>
 <script setup>
 import { computed } from 'vue'
-const props=defineProps({records:{type:Array,default:()=>[]}})
-const sorted=computed(()=>[...props.records].sort((a,b)=>b.study_date.localeCompare(a.study_date)||Number(b.record_id)-Number(a.record_id)))
+const props=defineProps({records:{type:Array,default:()=>[]},oldest:Boolean})
+const sorted=computed(()=>[...props.records].sort((a,b)=>(b.study_date.localeCompare(a.study_date)||(BigInt(b.record_id)>BigInt(a.record_id)?1:BigInt(b.record_id)<BigInt(a.record_id)?-1:0))*(props.oldest?-1:1)))
 </script>

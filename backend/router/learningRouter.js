@@ -16,6 +16,8 @@ function handle(action) {
   }
 }
 router.get('/',handle(req=>service.snapshot(req.session.userId)))
+router.get('/records',handle(req=>service.listRecords(req.session.userId,req.query)))
+router.get('/records/:id',handle(req=>service.getRecord(req.session.userId,req.params.id)))
 router.post('/milestones/reorder',handle(req=>service.reorder(req.session.userId,req.body.roadmap_id,req.body.ids)))
 router.post('/:kind',handle(req=>service.save(req.params.kind,req.session.userId,null,req.body || {})))
 router.patch('/:kind/:id',handle(req=>service.save(req.params.kind,req.session.userId,req.params.id,req.body || {})))
