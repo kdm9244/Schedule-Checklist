@@ -91,3 +91,103 @@
 .line-comment-marker{display:inline-flex;align-items:center;gap:2px;color:#50709d;line-height:1;cursor:pointer}.line-comment-marker small{font:10px/1 monospace}.learning .annotation-line-button{flex-basis:64px}.annotation-code-line.comment-hover{background:#edf3fc}.annotation-code-line.selected,.annotation-code-line.range-selected{background:#e0ebff}
 
 .note-search-controls{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px;padding:16px;background:#f5f8fc;border-radius:10px;margin:16px 0}.note-search-controls label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#526783}.note-search-controls input,.note-search-controls select{font-size:13px;min-height:40px}.note-search-field{flex:1;min-width:220px}.note-search-controls button{min-height:40px}.note-result-summary{font-size:13px;color:#536d90;margin:16px 0}.note-pagination{display:flex;justify-content:center;gap:8px;margin-top:20px}.note-pagination button[aria-current=page]{background:#315cbb;color:#fff;border-color:#315cbb}
+
+.learning-task-list .learning-task{padding:12px 16px;margin:8px 0;border:1px solid #e1e7f0;border-radius:9px;background:#fbfcfe}
+.learning-task-list .learning-task-main{justify-content:flex-start;gap:10px;flex-wrap:wrap}
+.learning-task-list .learning-task-title{flex:0 1 auto;max-width:calc(100% - 150px);line-height:1.7}
+.learning-task-controls{display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:8px;border-left:1px solid #dce4ef;padding-left:8px}
+.learning-task-list .learning-task-main>input:not([type=checkbox]){width:min(480px,65%)}
+.learning-task-list .learning-task-schedules{padding:8px 0 0 27px;gap:7px}
+.learning-task-list .learning-task-schedules button{min-height:30px;padding:4px 9px}
+.learning-task-list .learning-inline-form{max-width:650px;margin-top:14px}
+.learning-task-list .learning-task-title small{margin-left:8px}
+
+.learning-task-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.learning-task-grid .learning-task{margin:0;padding:16px;min-width:0}
+.learning-task-grid .learning-task-main{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:8px 10px}
+.learning-task-grid .learning-task-main>input[type=checkbox]{margin-top:4px}
+.learning-task-grid .learning-task-title{max-width:none;min-width:0;font-size:14px}
+.learning-task-grid .learning-task-title small{display:block;margin:6px 0 0;font-size:11px}
+.learning-task-grid .learning-task-controls{grid-column:2;justify-content:flex-start;margin:0;border:0;padding:0}
+.learning-task-grid .learning-task-main>input:not([type=checkbox]){width:100%}
+.learning-task-grid .learning-task-schedules{padding:12px 0 0;margin-top:8px;border-top:1px solid #e5ebf3;gap:7px}
+.learning-task-grid .learning-muted{flex-basis:100%;font-size:11px}
+.learning-task-grid .learning-inline-form,.learning-task-grid>.learning-error,.learning-task-grid>.learning-empty-small{grid-column:1/-1}
+.learning-task-grid .learning-inline-form{width:min(100%,650px);margin-top:2px}
+
+.polished-tasks{container-type:inline-size}
+.polished-tasks.learning-task-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.polished-tasks .learning-task{background:#fff;border:1px solid #dfe6ef;border-radius:14px;padding:18px 20px;box-shadow:0 2px 8px #20365305}
+.task-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.task-status{font-size:11px;font-weight:600;color:#587197;background:#eff4fc;border-radius:20px;padding:4px 10px}
+.task-done .task-status{color:#397d63;background:#eef7f2}
+.task-menu{position:relative}.learning .task-menu>button{border:0;background:transparent;font-size:24px;line-height:1;min-height:28px;padding:0 6px;color:#6c7d94}
+.task-menu-items{position:absolute;right:0;top:32px;min-width:110px;background:#fff;border:1px solid #dce4ef;border-radius:9px;padding:5px;box-shadow:0 5px 18px #1f35521c;z-index:4}.learning .task-menu-items button{display:block;width:100%;text-align:left;border:0;justify-content:flex-start;font-size:13px}.task-menu-items button:hover{background:#f2f5fa}
+.polished-tasks .learning-task-main{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:10px}
+.polished-tasks .learning-task-title{flex:1;max-width:none;font-size:15px;font-weight:600;line-height:1.7;color:#293f5d}
+.polished-tasks .learning-task-main>input:not([type=checkbox]){flex:1;width:100%;min-width:0}
+.polished-tasks .learning-task-title.completed{color:#93a0af}
+.task-next-date{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:20px 0;color:#5e718b}
+.task-next-date>span{font-size:11px;flex-basis:100%}.task-next-date strong{font-size:14px;font-weight:500}.task-next-date small{font-size:11px;color:#8291a5}
+.task-card-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:14px;border-top:1px solid #e9edf3}
+.learning .task-card-footer .learning-button{background:#f3f6fc;border:0;color:#315cbb;font-size:12px}.task-edit-actions{display:flex;gap:8px;margin:10px 0 0 27px}
+.polished-tasks .learning-task-schedules{padding:14px 0 0}.polished-tasks .learning-task-schedules .learning-muted{flex-basis:100%}
+.learning-milestone-body,.learning-form-card{container-type:inline-size}
+@container (max-width:1000px){.polished-tasks.learning-task-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container (max-width:620px){.polished-tasks.learning-task-grid{grid-template-columns:minmax(0,1fr)}}
+.note-search-simple{background:transparent;padding:0;margin:18px 0;gap:10px}.note-filter-details{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px;flex-basis:100%;background:#f5f8fc;border:1px solid #e5ebf3;border-radius:10px;padding:16px;margin-top:4px}
+
+.task-detail-page{max-width:1200px}
+.task-detail-page>.learning-header{margin:24px 0}.task-detail-page .learning-eyebrow{font-size:12px;letter-spacing:.04em;color:#647c9c}.task-detail-page h1{font-size:30px;margin:8px 0}
+.task-header-status{display:inline-block;margin-left:12px;padding:3px 10px;background:#eaf0fa;color:#486b9f;border-radius:20px;font-size:12px}
+.task-detail-page .task-management{padding:20px 24px;margin-bottom:24px}
+.task-detail-page .task-management>h2{font-size:15px;margin:0 0 16px;color:#536a89}
+.task-detail-controls .learning-task{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px 28px;margin:0;padding:0;border:0;box-shadow:none;background:transparent;border-radius:0}
+.task-detail-controls .learning-task-main{grid-column:1;min-width:160px;align-items:center}
+.task-completion-label{font-size:14px;color:#405c7d;font-weight:600}
+.task-detail-controls .task-next-date{grid-column:2;grid-row:1;margin:0;padding-left:28px;border-left:1px solid #e4eaf2}
+.task-detail-controls .task-card-footer{grid-column:3;grid-row:1;margin:0;padding:0;border:0}
+.task-detail-controls .task-detail-edit{grid-column:3;display:flex;justify-content:flex-end;gap:6px;font-size:12px}
+.task-detail-controls .task-edit-actions{grid-column:1/-1;margin:0}
+.task-detail-controls .learning-task-schedules{grid-column:1/-1;margin-top:0;padding:16px 0 0;border-top:1px solid #e4eaf2}
+.task-note-section{padding:24px 28px}.task-note-section>.learning-section-heading{margin:0 0 20px}
+.task-note-section .learning-record-link{padding:16px 0}.task-note-section .learning-record-link strong{font-size:15px}.task-note-section .learning-record-link small{font-size:12px;color:#7185a0}
+.task-note-section .note-search-controls{margin:0 0 18px}.task-detail-page .learning-task-breadcrumb{font-size:13px;color:#637994}
+
+.task-note-header{align-items:center;gap:20px}.task-note-header .learning-actions{flex-wrap:wrap;justify-content:flex-end}.task-note-header .task-header-status{margin:4px 0 0}
+.learning .task-complete-button{background:#eef7f1;border-color:#c4dece;color:#347751}
+.task-header-menu{position:relative}.task-header-menu summary{cursor:pointer;list-style:none;font-size:24px;padding:0 10px;color:#667b95}.task-header-menu summary::-webkit-details-marker{display:none}.task-header-menu>div{position:absolute;right:0;top:35px;min-width:130px;z-index:8;background:white;border:1px solid #dce4ef;border-radius:8px;padding:5px;box-shadow:0 4px 15px #263d5915}.task-header-menu button{display:block;width:100%;border:0;text-align:left}
+.task-rename-form{display:flex;gap:10px;margin:12px 0 20px}.task-rename-form input{flex:1;max-width:600px}
+.compact-notes{padding:20px 24px}.compact-notes>.learning-section-heading{margin:0 0 16px}.compact-notes .learning-record-link{padding:11px 0}.compact-notes .note-result-summary{margin:12px 0 8px}
+.note-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+.roadmap-detail-page{max-width:1280px}.roadmap-detail-page>.learning-header{margin:16px 0 20px}.roadmap-detail-page .learning-eyebrow{font-size:12px;letter-spacing:.04em}
+.roadmap-summary{display:grid;grid-template-columns:minmax(0,1fr) 260px;align-items:center;gap:28px;padding:20px 24px}
+.roadmap-summary .learning-description{font-size:14px;line-height:1.7;margin:0 0 12px;color:#506783}.roadmap-summary .learning-progress{margin:0}
+.roadmap-summary-meta{display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:#71839a}.roadmap-summary-meta strong{color:#405a7c;font-weight:500;margin-left:8px}
+.roadmap-milestone-section{margin:26px 0 16px}.roadmap-milestone-section small{display:block;margin-top:6px;font-size:12px;color:#7588a2}
+.roadmap-detail-page .learning-milestone{overflow:visible;border-radius:14px}.roadmap-detail-page .learning-milestone-heading{padding:16px 20px;gap:12px}.roadmap-detail-page .learning-milestone-summary h3{font-size:17px;margin-bottom:5px}
+.roadmap-detail-page .learning-milestone-body{padding:18px 22px}.roadmap-detail-page .learning-milestone-body>.learning-section-heading{margin:18px 0 12px}.roadmap-detail-page .learning-milestone-body>.learning-description{margin-bottom:16px;font-size:13px}
+.roadmap-detail-page .task-header-menu .learning-button{width:100%;justify-content:flex-start;border:0;box-sizing:border-box;font-size:13px}.roadmap-detail-page .learning-milestone-actions{gap:10px}.roadmap-detail-page .learning-step{width:36px;flex-basis:36px;height:36px;border-radius:10px}
+
+.roadmap-detail-page>.learning-header{align-items:flex-start;margin:16px 0 18px}.roadmap-detail-page>.learning-header>.learning-actions{padding-top:8px}
+.goal-heading-meta{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin-top:10px;color:#526d91;font-size:13px}.goal-heading-meta>span+span{border-left:1px solid #cfd9e7;padding-left:18px}
+.roadmap-detail-page .goal-heading-description{font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere;max-width:850px;color:#61758f;margin:12px 0 0}
+.goal-progress-summary{display:flex;align-items:center;gap:24px;padding:14px 0 20px;border-bottom:1px solid #d6e0ed}.goal-progress-summary>span{font-size:12px;color:#647d9d;flex-shrink:0}.goal-progress-summary .learning-progress{width:min(100%,420px);margin:0}.goal-progress-summary .learning-progress-copy{font-size:12px}.goal-progress-summary .learning-progress-track{height:5px}
+
+.roadmap-detail-page>.compact-goal-header{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:24px;margin:8px 0 18px;padding-bottom:18px;border-bottom:1px solid #d6e0ed;align-items:start}
+.compact-goal-header .goal-title-area h1{font-size:27px;margin:4px 0 8px}.compact-goal-header .goal-heading-meta{margin-top:0;gap:12px}.compact-goal-header .goal-heading-meta>span+span{padding-left:12px}
+.roadmap-detail-page .compact-goal-header .goal-heading-description{margin:8px 0 0;font-size:13px;line-height:1.6}
+.goal-header-side{display:flex;flex-direction:column;gap:18px;align-items:stretch}.goal-header-side .learning-actions{justify-content:flex-end}.goal-header-progress .learning-progress{margin:0}.goal-header-progress .learning-progress-copy{font-size:12px;margin-bottom:6px}.goal-header-progress .learning-progress-track{height:5px}
+.roadmap-detail-page .roadmap-milestone-section{margin-top:18px}
+
+/* Shared section hierarchy across goals, subgoals and task notes. */
+.section-title-group{display:flex;align-items:center;gap:10px;min-width:0}.learning .section-title-group h2{font-size:18px;font-weight:700;line-height:1.5;margin:0;color:#293f5b}.section-count{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:25px;box-sizing:border-box;padding:0 8px;background:#edf2fa;border-radius:8px;font-size:12px;font-weight:600;color:#496998}.section-title-group small{font-size:12px;color:#72859e;margin-left:4px}
+.task-list-toolbar{margin:0 0 4px;padding:0}.learning .task-list-toolbar>button,.learning .learning-section-heading>.learning-button{min-height:36px;padding:8px 13px;font-size:12px}
+.roadmap-detail-page .learning-milestone-body{padding:22px 24px}.roadmap-detail-page .learning-milestone-body>.learning-description{font-size:14px;line-height:1.7;margin-bottom:20px}.roadmap-detail-page .learning-milestone-body>.learning-section-heading{margin:24px 0 16px}
+.learning .polished-tasks .learning-task{padding:18px;border-radius:12px;box-shadow:none}.learning .polished-tasks .learning-task-title{font-size:15px}.learning .task-status{font-size:12px}.learning .task-next-date>span{font-size:12px}.learning .task-next-date strong{font-size:13px}.learning .task-next-date{margin:16px 0}.polished-tasks .task-card-footer{padding-top:12px}
+.learning-record-link strong{font-size:15px!important;line-height:1.6}.learning-record-link small{font-size:12px!important;color:#72859e}.learning-record-link{padding:13px 0;gap:12px}.learning-record-icon{width:32px;height:32px;flex-shrink:0}
+.note-search-simple{margin:0 0 12px}.note-search-controls input,.note-search-controls select{font-size:14px;min-height:40px}.note-pagination{align-items:center;justify-content:flex-end;border-top:1px solid #e7edf4;padding-top:14px;margin-top:12px}.note-page-summary{font-size:12px;color:#72859e;margin-right:8px}.note-filter-result{font-size:13px;color:#5c7391;margin:8px 0}
+.milestone-detail-page{max-width:1280px}.milestone-detail-page>.learning-form-card{padding:24px;margin-bottom:22px}.milestone-detail-page .learning-section-heading{margin:0 0 16px}.milestone-detail-page .learning-overview{margin-bottom:22px;padding:22px 24px;gap:24px}.milestone-detail-page .learning-overview h2{font-size:16px;margin:0 0 10px}.milestone-detail-page .learning-overview .learning-description{font-size:14px;margin:0}.milestone-detail-page .learning-eyebrow{font-size:12px;letter-spacing:.04em}
+
+.task-list-toolbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:12px}.task-list-toolbar>span{font-size:12px;color:#71839d}.learning .task-menu-items{min-width:185px}

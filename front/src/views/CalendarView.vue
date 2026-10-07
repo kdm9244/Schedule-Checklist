@@ -18,7 +18,7 @@
     </header>
 
     <LearningStatus />
-    <div class="learning-calendar-legend"><span>▰ ロードマップ期間</span><span>▰ マイルストーン締切</span><span>▰ 学習予定</span><span>● 学習記録</span></div>
+    <div class="learning-calendar-legend"><span>▰ 学習目標期間</span><span>▰ 小さな目標締切</span><span>▰ 学習予定</span><span>● 学習記録</span></div>
     <main class="calendar-shell ui-surface">
       <section class="month-panel">
         <p v-if="error" class="load-error" role="alert">{{ error }} <button @click="loadMonth">再試行</button></p>
@@ -99,7 +99,7 @@ import LearningStatus from '../components/learning/LearningStatus.vue'
 const {state:learning,load:loadLearning,save:saveLearning}=useLearning()
 function exclusiveEnd(day){const d=new Date(day+'T00:00:00');d.setDate(d.getDate()+1);return dateKey(d)}
 const learningEvents=computed(()=>[
-  ...learning.roadmaps.filter(r=>r.start_date&&r.target_date).map(r=>({id:'roadmap-'+r.roadmap_id,title:'ロードマップ · '+r.title,start:r.start_date,end:exclusiveEnd(r.target_date),allDay:true,backgroundColor:'#345db5',borderColor:'#345db5',editable:false,extendedProps:{learningType:'roadmap',roadmapId:r.roadmap_id}})),
+  ...learning.roadmaps.filter(r=>r.start_date&&r.target_date).map(r=>({id:'roadmap-'+r.roadmap_id,title:'学習目標 · '+r.title,start:r.start_date,end:exclusiveEnd(r.target_date),allDay:true,backgroundColor:'#345db5',borderColor:'#345db5',editable:false,extendedProps:{learningType:'roadmap',roadmapId:r.roadmap_id}})),
   ...learning.milestones.filter(m=>m.due_date).map(m=>({id:'milestone-'+m.milestone_id,title:'締切 · '+m.title,start:m.due_date,allDay:true,backgroundColor:'#d06b42',borderColor:'#d06b42',editable:false,extendedProps:{learningType:'deadline',milestoneId:m.milestone_id}})),
   ...learning.schedules.map(s=>({id:'study-'+s.schedule_id,title:'学習 · '+(learning.tasks.find(t=>t.task_id===s.task_id)?.title||''),start:s.scheduled_date,allDay:true,backgroundColor:'#16856b',borderColor:'#16856b',editable:true,durationEditable:false,extendedProps:{learningType:'schedule',scheduleId:s.schedule_id}})),
   ...learning.records.map(r=>({id:'record-'+r.record_id,title:'記録 · '+r.title,start:r.study_date,allDay:true,backgroundColor:'#8b5eb5',borderColor:'#8b5eb5',editable:false,extendedProps:{learningType:'record',recordId:r.record_id}}))

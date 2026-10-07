@@ -3,7 +3,7 @@ const { validDate } = require('../utils/validation')
 const specs = {
   roadmaps: { table: 'learning_roadmaps', id: 'roadmap_id', fields: ['title','description','start_date','target_date'] },
   milestones: { table: 'learning_milestones', id: 'milestone_id', fields: ['roadmap_id','title','description','start_date','due_date','sort_order'] },
-  tasks: { table: 'learning_tasks', id: 'task_id', fields: ['milestone_id','title','is_completed','sort_order'] },
+  tasks: { table: 'learning_tasks', id: 'task_id', fields: ['milestone_id','title','start_date','target_date','is_completed','sort_order'] },
   records: { table: 'learning_records', id: 'record_id', fields: ['milestone_id','task_id','study_date','title','body_markdown','input_mode'] },
   schedules: { table: 'learning_schedules', id: 'schedule_id', fields: ['task_id','event_id','scheduled_date'] },
   comments: { table:'learning_comments', id:'comment_id', fields:['record_id','block_start','block_source','line_number','end_line','line_text','body'] }
@@ -33,6 +33,7 @@ function normalize(kind, input) {
       if (!['plain','markdown'].includes(value || 'markdown')) throw error(400,'入力形式を確認してください。')
       result[key] = value || 'markdown'
     } else if (key.endsWith('_date')) {
+      if(kind==='tasks'&&!value){result[key]=null;continue}
       if (!validDate(value)) throw error(400,'開始日と締切日を入力してください。'); result[key] = value
     } else if (key === 'is_completed') {
       if (typeof value !== 'boolean') throw error(400,'完了状態を確認してください。')
@@ -48,6 +49,7 @@ function normalize(kind, input) {
   if (kind === 'records' && !result.milestone_id) result.task_id = null
   if(kind==='comments'&&(result.end_line<result.line_number||result.end_line>result.block_source.replace(/\n$/,'').split('\n').length||result.line_text!==result.block_source.replace(/\n$/,'').split('\n').slice(result.line_number-1,result.end_line).join('\n')))throw error(400,'コードの選択範囲を確認してください。')
   if (['roadmaps','milestones'].includes(kind) && result.start_date > result[kind==='roadmaps'?'target_date':'due_date']) throw error(400,'締切日は開始日以降にしてください。')
+  if(kind==='tasks'&&result.start_date&&result.target_date&&result.start_date>result.target_date)throw error(400,'目標日は開始日以降にしてください。')
   return result
 }
 function projection(spec) {
@@ -92,13 +94,13 @@ async function save(kind, userId, id, input, db = dao) {
     if(kind==='comments')await owned(client,'records',userId,data.record_id)
     if (kind === 'milestones') {
       const parent = await owned(client,'roadmaps',userId,data.roadmap_id)
-      if (!parent.start_date || !parent.target_date || data.start_date < parent.start_date || data.due_date > parent.target_date) throw error(400,'マイルストーンの期間はロードマップの期間内にしてください。')
+      if (!parent.start_date || !parent.target_date || data.start_date < parent.start_date || data.due_date > parent.target_date) throw error(400,'小さな目標の期間は学習目標の期間内にしてください。')
     }
     if (kind === 'roadmaps' && id) {
       const outside = (await client.query('SELECT title FROM learning_milestones WHERE user_id=$1 AND roadmap_id=$2 AND (start_date IS NULL OR due_date IS NULL OR start_date<$3::date OR due_date>$4::date)',[userId,id,data.start_date,data.target_date])).rows
-      if (outside.length) throw error(400,'先にマイルストーンの期間を調整してください：'+outside.map(m=>m.title).join('、'))
+      if (outside.length) throw error(400,'先に小さな目標の期間を調整してください：'+outside.map(m=>m.title).join('、'))
     }
-    if (kind === 'tasks') await owned(client,'milestones',userId,data.milestone_id)
+    if (kind === 'tasks') {await owned(client,'milestones',userId,data.milestone_id);if(!id&&(!data.start_date||!data.target_date))throw error(400,'開始日と目標日を入力してください。')}
     if (kind === 'records' && data.milestone_id) {
       await owned(client,'milestones',userId,data.milestone_id)
       if (data.task_id) {
@@ -158,8 +160,19 @@ async function listRecords(userId,input={},db=dao){
  const requested=Number(input.page||1);if(!Number.isSafeInteger(requested)||requested<1)throw error(400,'ページを確認してください。')
  const filter=where.join(' AND '),direction=input.order==='oldest'?'ASC':'DESC'
  // One SQL statement gives count and page the same database snapshot.
- const result=await db.query(`WITH filtered AS (SELECT record_id,title,study_date,input_mode,milestone_id,task_id FROM learning_records WHERE ${filter}), total AS (SELECT count(*)::int AS count FROM filtered), page_data AS (SELECT *,study_date::text AS date_text FROM filtered ORDER BY study_date ${direction},record_id ${direction} LIMIT 10 OFFSET (LEAST($${args.length+1}::bigint,GREATEST(1,ceil((SELECT count FROM total)/10.0)::bigint))-1)*10) SELECT (SELECT count FROM total) AS total,COALESCE(json_agg(json_build_object('record_id',record_id::text,'title',title,'study_date',date_text,'input_mode',input_mode,'milestone_id',milestone_id::text,'task_id',task_id::text) ORDER BY study_date ${direction},record_id ${direction}) FILTER(WHERE record_id IS NOT NULL),'[]'::json) AS records FROM page_data`,[...args,requested])
- const row=result.rows[0],pages=Math.max(1,Math.ceil(row.total/10));return {records:row.records,total:row.total,page:Math.min(requested,pages),pages,pageSize:10}
+ const result=await db.query(`WITH filtered AS (SELECT record_id,title,study_date,input_mode,milestone_id,task_id FROM learning_records WHERE ${filter}), total AS (SELECT count(*)::int AS count FROM filtered), page_data AS (SELECT *,study_date::text AS date_text FROM filtered ORDER BY study_date ${direction},record_id ${direction} LIMIT 5 OFFSET (LEAST($${args.length+1}::bigint,GREATEST(1,ceil((SELECT count FROM total)/5.0)::bigint))-1)*5) SELECT (SELECT count FROM total) AS total,COALESCE(json_agg(json_build_object('record_id',record_id::text,'title',title,'study_date',date_text,'input_mode',input_mode,'milestone_id',milestone_id::text,'task_id',task_id::text) ORDER BY study_date ${direction},record_id ${direction}) FILTER(WHERE record_id IS NOT NULL),'[]'::json) AS records FROM page_data`,[...args,requested])
+ const row=result.rows[0],pages=Math.max(1,Math.ceil(row.total/5));return {records:row.records,total:row.total,page:Math.min(requested,pages),pages,pageSize:5}
 }
 async function getRecord(userId,id,db=dao){return owned(db,'records',userId,id)}
-module.exports = { snapshot, save, remove, reorder, normalize, identifier, listRecords, getRecord }
+async function moveTask(userId,id,input,db=dao){return transaction(userId,async client=>{
+ const task=await owned(client,'tasks',userId,id),source=await owned(client,'milestones',userId,task.milestone_id),destination=await owned(client,'milestones',userId,input.milestone_id)
+ if(String(source.roadmap_id)!==String(destination.roadmap_id))throw error(400,'同じ学習目標の中で移動してください。')
+ if(String(task.milestone_id)===String(destination.milestone_id))return snapshot(userId,client)
+ await client.query('SET CONSTRAINTS ALL DEFERRED')
+ const next=Number((await client.query('SELECT COALESCE(MAX(sort_order),-1)+1 AS next FROM learning_tasks WHERE user_id=$1 AND milestone_id=$2',[userId,destination.milestone_id])).rows[0].next)
+ await client.query('UPDATE learning_tasks SET milestone_id=$1,sort_order=$2,updated_at=CURRENT_TIMESTAMP WHERE user_id=$3 AND task_id=$4',[destination.milestone_id,next,userId,id])
+ await client.query('UPDATE learning_records SET milestone_id=$1,updated_at=CURRENT_TIMESTAMP WHERE user_id=$2 AND task_id=$3',[destination.milestone_id,userId,id])
+ await client.query('SET CONSTRAINTS ALL IMMEDIATE')
+ return snapshot(userId,client)
+},db)}
+module.exports = { snapshot, save, remove, reorder, normalize, identifier, listRecords, getRecord, moveTask }

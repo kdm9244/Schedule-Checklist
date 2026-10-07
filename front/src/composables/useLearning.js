@@ -64,4 +64,5 @@ async function reorder(roadmapId,ids) {
   return mutate(async()=> (await api.post('/milestones/reorder',{roadmap_id:roadmapId,ids})).data)
 }
 async function loadRecord(id){const {data}=await api.get('/records/'+id);state.records=state.records.map(r=>r.record_id===data.record_id?data:r);return data}
-export function useLearning() { return {state:readonly(state),load,save,remove,reorder,loadRecord} }
+async function moveTask(id,milestone_id){return mutate(async()=> (await api.post('/tasks/'+id+'/move',{milestone_id})).data)}
+export function useLearning() { return {state:readonly(state),load,save,remove,reorder,loadRecord,moveTask} }

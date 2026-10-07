@@ -1,5 +1,16 @@
 # 학습 기능 스키마 적용
 
+## 할 일 기간과 이동 (005)
+
+004까지 적용된 DB는 005_learning_task_periods.sql만 추가 적용한다. 기존 할 일의 날짜는 NULL로 유지하며 편집 모달에서 입력할 수 있다. 신규 할 일은 이름·시작일·목표일을 필수로 입력한다. 기간은 학습 일정과 별개이며 일정을 자동 생성하지 않는다. 같은 학습 목표 안의 세부 목표로 이동할 수 있고 노트·댓글·일정·완료 상태는 유지한다. 노트의 복합 FK를 지연 가능하게 변경하여 서버 트랜잭션 안에서 할 일과 노트의 부모를 함께 갱신한다.
+
+```powershell
+cd backend
+node database/migrations/applyLearningTasks.js --apply
+```
+
+통합 learning_schema.sql에는 001~005가 포함되어 있다. 신규 학습 DB에만 사용하고 개별 마이그레이션과 중복 실행하지 않는다.
+
 기존 인증/캘린더 테이블(users/events)이 준비된 PostgreSQL에서 적용한다. 연결 대상은 backend/.env로 설정한다. 운영/공유 DB에 자동 적용하지 않는다.
 
 - 신규 학습 스키마: 001_learning.sql → 002_learning_periods.sql → 003_learning_comments.sql → 004_learning_comment_ranges.sql

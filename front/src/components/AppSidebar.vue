@@ -92,13 +92,13 @@
           type="button"
           class="menu-item roadmap-toggle"
           :class="{ 'roadmap-current': learningRoute }"
-          title="ロードマップ"
+          title="学習目標"
           :aria-expanded="roadmapOpen && !collapsed"
           aria-controls="roadmap-submenu"
           @click="toggleRoadmaps"
         >
           <span class="menu-icon">◇</span>
-          <span v-if="!collapsed">ロードマップ</span>
+          <span v-if="!collapsed">学習目標</span>
           <span v-if="!collapsed" class="roadmap-chevron" :class="{ open: roadmapOpen }" aria-hidden="true">⌄</span>
         </button>
         <Transition name="roadmap-menu">
@@ -107,17 +107,14 @@
               <RouterLink :to="learningDestination('/learning/roadmaps')" class="roadmap-submenu-item">一覧を見る</RouterLink>
               <span v-if="learning.loading" class="roadmap-menu-note" role="status">読み込み中...</span>
               <template v-if="learning.loaded && learning.roadmaps.length">
-                <span class="roadmap-group-label">マイロードマップ</span>
+                <span class="roadmap-group-label">マイ学習目標</span>
                 <div class="roadmap-saved-list">
                   <RouterLink v-for="roadmap in learning.roadmaps" :key="roadmap.roadmap_id" :to="learningDestination('/learning/roadmaps/' + roadmap.roadmap_id)" class="roadmap-submenu-item roadmap-saved-item" :title="roadmap.title">
                     <span aria-hidden="true">·</span><span>{{ roadmap.title }}</span>
                   </RouterLink>
                 </div>
               </template>
-              <span class="roadmap-group-label roadmap-create-label">学習を追加</span>
-              <RouterLink v-for="item in learningCreateLinks" :key="item.path" :to="learningDestination(item.path)" class="roadmap-submenu-item roadmap-create-item">
-                <span aria-hidden="true">＋</span><span>{{ item.label }}</span>
-              </RouterLink>
+
             </div>
           </div>
         </Transition>
@@ -189,11 +186,7 @@ import axios from 'axios'
 import { API_ORIGIN } from '../utils/http'
 import { useLearning } from '../composables/useLearning'
 
-const learningCreateLinks = [
-  { path:'/learning/roadmaps/new', label:'ロードマップ作成' },
-  { path:'/learning/milestones/new', label:'マイルストーン作成' },
-  { path:'/learning/records/new', label:'学習記録作成' }
-]
+
 
 const router = useRouter()
 const route = useRoute()
