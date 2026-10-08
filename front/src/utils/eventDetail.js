@@ -1,5 +1,25 @@
 import { dateKey } from './calendar.js'
 
+// Split visible text into safe links without rendering incoming HTML.
+export function descriptionParts(text) {
+  const parts = []
+  let cursor = 0
+  for (const match of text.matchAll(/https?:\/\/[^\s<>"']+/gi)) {
+    let value = match[0].replace(/[.,!?;:。、！？，；：]+$/u, '')
+    // Keep balanced parentheses in URLs, but exclude surrounding prose punctuation.
+    while (value.endsWith(')') && (value.match(/\)/g) || []).length > (value.match(/\(/g) || []).length) value = value.slice(0, -1)
+    try {
+      const url = new URL(value)
+      if (!['http:', 'https:'].includes(url.protocol)) continue
+      if (match.index > cursor) parts.push({ text:text.slice(cursor, match.index) })
+      parts.push({ text:value, url:url.href })
+      cursor = match.index + value.length
+    } catch { /* Leave invalid URLs as plain text. */ }
+  }
+  if (cursor < text.length) parts.push({ text:text.slice(cursor) })
+  return parts
+}
+
 // Never render incoming Google HTML. Produce text and explicitly allowlisted links.
 export function readableDescription(html) {
   // Template content is inert: embedded images/iframes cannot initiate resource loads.
@@ -21,7 +41,10 @@ export function readableDescription(html) {
     }
     return text + (['P','DIV','LI','H1','H2','H3','TR','UL','OL','BLOCKQUOTE'].includes(node.tagName) ? '\n' : '')
   }
-  return { text:walk(template.content).replace(/\n{3,}/g,'\n\n').trim(), links:[...new Map(links.map(link => [link.url,link])).values()] }
+  const text = walk(template.content).replace(/\n{3,}/g,'\n\n').trim()
+  const parts = descriptionParts(text)
+  const inlineUrls = new Set(parts.filter(part => part.url).map(part => part.url))
+  return { text, parts, links:[...new Map(links.filter(link => !inlineUrls.has(link.url)).map(link => [link.url,link])).values()] }
 }
 function localTime(value) {
   const d = new Date(value)

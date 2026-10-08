@@ -37,6 +37,8 @@ const routes = [
         component: SettingsView
       },
       { path: 'learning/roadmaps', component: () => import('../views/RoadmapListView.vue') },
+      { path: 'learning/pdf-notes', component: () => import('../views/PdfNotesView.vue') },
+      { path: 'learning/pdf-notes/:id', component: () => import('../views/PdfNoteView.vue') },
       { path: 'learning/roadmaps/new', component: () => import('../views/LearningEntityView.vue'), meta: { entity:'roadmaps' } },
       { path: 'learning/roadmaps/:id/edit', component: () => import('../views/LearningEntityView.vue'), meta: { entity:'roadmaps' } },
       { path: 'learning/roadmaps/:id', component: () => import('../views/RoadmapDetailView.vue') },

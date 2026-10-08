@@ -40,6 +40,7 @@ app.use('/api/users', userRouter)
 app.use('/api/checklists', checklistRouter)
 app.use('/api/memos', memoRouter)
 app.use('/api/learning', require('../router/learningRouter'))
+app.use('/api/pdf-notes', require('../router/pdfNoteRouter'))
 app.use('/api/checklist-templates', checklistTemplateRouter)
 
 const PORT = process.env.PORT || 3000

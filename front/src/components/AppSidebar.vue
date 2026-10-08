@@ -43,6 +43,7 @@
 
     <!-- 메뉴 -->
     <nav class="menu">
+      <RouterLink to="/learning/pdf-notes" class="menu-item" title="PDFノート"><span class="menu-icon">▤</span><span v-if="!collapsed">PDFノート</span></RouterLink>
 
       <RouterLink
         to="/today"

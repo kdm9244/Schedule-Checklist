@@ -6,7 +6,7 @@
       <header class="learning-header"><div><span class="learning-eyebrow">小さな目標</span><h1>{{ milestone.title }}</h1><p>{{ milestone.start_date || '未設定' }} 〜 {{ milestone.due_date || '未設定' }}</p></div><div class="learning-actions"><RouterLink class="learning-button" :to="'/learning/milestones/'+milestone.milestone_id+'/edit'">編集</RouterLink><button class="danger" :disabled="state.busy" @click="deleteMilestone">削除</button></div></header>
       <section class="learning-overview ui-surface"><div><h2>説明・完了基準</h2><p class="learning-description">{{ milestone.description || '完了基準はまだありません。' }}</p></div><LearningProgress :value="progress(tasks)" /></section>
       <section class="learning-form-card ui-surface"><LearningTaskList :milestone-id="milestone.milestone_id" /></section>
-      <section class="learning-form-card ui-surface"><div class="learning-section-heading"><div class="section-title-group"><h2>学習ノート</h2><span class="section-count">{{ records.length }}</span></div><RouterLink class="learning-button primary" :to="{path:'/learning/records/new',query:{milestone:milestone.milestone_id,roadmap:milestone.roadmap_id}}">＋ 学習ノートを書く</RouterLink></div><LearningRecordBrowser :milestone-id="milestone.milestone_id" /></section>
+      <section class="learning-form-card ui-surface"><LearningRecordBrowser :milestone-id="milestone.milestone_id" /></section>
     </template><p v-else-if="state.loaded" class="learning-empty ui-surface">小さな目標が見つかりません。</p>
   </div>
 </template>

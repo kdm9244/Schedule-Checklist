@@ -42,7 +42,8 @@
               <section class="workspace-content-card description">
                 <div class="workspace-content-card-header"><div><span>DESCRIPTION</span><strong>説明</strong></div></div>
                 <div class="description-body">
-                  <p>{{ description.text || '説明はありません。' }}</p>
+                  <p v-if="description.text"><template v-for="(part, index) in description.parts" :key="index"><a v-if="part.url" :href="part.url" target="_blank" rel="noopener noreferrer">{{ part.text }}</a><template v-else>{{ part.text }}</template></template></p>
+                  <p v-else>説明はありません。</p>
                   <ul v-if="description.links.length">
                     <li v-for="link in description.links" :key="link.url">
                       <a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.text }} ↗</a>
