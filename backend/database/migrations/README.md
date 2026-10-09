@@ -1,5 +1,7 @@
 # 학습 기능 스키마 적용
 
+빈 DB 전체 설치는 `../schema.sql`을 사용합니다. 기본 테이블부터 009까지 포함한 실제 DB 전체 스키마이며, 아래 마이그레이션을 중복 적용하지 않습니다. 데이터까지 이전하려면 프로젝트 루트의 `DATABASE_SETUP.md`를 참고하세요. 기존 DB에서 단어 기능을 갱신할 때는 008_pdf_note_words.sql 다음 009_word_mastery.sql을 적용합니다.
+
 ## PDF 노트 서식 (007)
 
 006까지 설치한 환경은 backend 폴더에서 `node database/migrations/applyPdfNoteFormat.js --apply`를 실행한다. 기존 PDF 문제별 노트 테이블에 body_format 칼럼 하나만 추가하며 기존 글은 plain으로 유지한다. 새 환경은 006 다음 007_pdf_note_format.sql을 적용한다. 새 DB나 테이블은 만들지 않는다.

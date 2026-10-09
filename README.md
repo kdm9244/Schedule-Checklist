@@ -59,6 +59,8 @@ Google Calendar의 일정을 불러오고, 일정에 필요한 준비 작업·�
 
 ## 설치
 
+집 PC에서 전체 DB를 새로 설치하거나 기존 데이터를 옮기는 방법은 [DB 설치·백업·복원 안내](DATABASE_SETUP.md)를 참고하세요. 최신 전체 스키마는 `backend/database/schema.sql`입니다.
+
 각 디렉터리에서 의존성을 설치합니다.
 
 ```powershell
