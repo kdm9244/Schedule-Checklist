@@ -1,5 +1,9 @@
 # 학습 기능 스키마 적용
 
+## PDF 노트 서식 (007)
+
+006까지 설치한 환경은 backend 폴더에서 `node database/migrations/applyPdfNoteFormat.js --apply`를 실행한다. 기존 PDF 문제별 노트 테이블에 body_format 칼럼 하나만 추가하며 기존 글은 plain으로 유지한다. 새 환경은 006 다음 007_pdf_note_format.sql을 적용한다. 새 DB나 테이블은 만들지 않는다.
+
 ## PDF 학습 노트 (006)
 
 001~005가 준비된 로컬 DB에서 `node database/migrations/applyPdfNotes.js --apply`를 실행한다. PDF 노트와 문제별 풀이 테이블을 추가하며 기존 학습 데이터는 유지한다. 다른 컴퓨터에도 006_pdf_notes.sql 적용과 PDF 저장 폴더 복원이 필요하다. 통합 learning_schema.sql에는 006이 포함되지 않으므로 추가로 적용한다. 상세 사용·백업 안내는 프로젝트의 PDF_NOTES.md를 참고한다.

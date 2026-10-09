@@ -43,7 +43,6 @@
 
     <!-- 메뉴 -->
     <nav class="menu">
-      <RouterLink to="/learning/pdf-notes" class="menu-item" title="PDFノート"><span class="menu-icon">▤</span><span v-if="!collapsed">PDFノート</span></RouterLink>
 
       <RouterLink
         to="/today"
@@ -121,6 +120,9 @@
         </Transition>
       </section>
 
+      <RouterLink to="/words" class="menu-item" :title="collapsed ? '単語帳' : ''">
+        <div class="menu-icon">文</div><span v-if="!collapsed">単語帳</span>
+      </RouterLink>
       <RouterLink to="/settings" class="menu-item" :title="collapsed ? '設定' : ''">
         <div class="menu-icon">⚙</div>
         <span v-if="!collapsed">設定</span>

@@ -5,5 +5,5 @@ export function pdfEntryBody(entry = {}) {
     .filter(([, text]) => text).map(([title, text]) => `${title}\n${text}`).join('\n\n')
 }
 export function pdfEntryPayload(form) {
-  return { question: form.question, page: form.page, status: form.status || 'draft', interpretation: '', solution: form.body, review: '' }
+  return { question: form.question, page: form.page, status: form.status || 'draft', interpretation: '', solution: form.body, review: '',body_format:form.body_format||'plain' }
 }

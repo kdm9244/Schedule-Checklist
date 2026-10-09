@@ -40,6 +40,22 @@ test('real PDF upload, ownership, entry editing, position and file deletion',{sk
   assert.equal((await fetch(base+'/'+noteId,json('PATCH',{title:'updated title'}))).status,200)
   const saved=await (await fetch(base+'/'+noteId)).json();assert.equal(saved.note.last_page,3);assert.equal(saved.entries[0].solution,'updated');assert.equal(saved.entries[0].status,'review')
   assert.equal(saved.note.title,'updated title')
+  const destinations=(await db.query('SELECT milestone_id,roadmap_id FROM learning_milestones WHERE user_id=$1 ORDER BY milestone_id',[user.user_id])).rows
+  if(destinations.length){
+   const destination=destinations[destinations.length-1]
+   const moved=await fetch(base+'/'+noteId,json('PATCH',{milestone_id:destination.milestone_id}));assert.equal(moved.status,200)
+   const metadata=await moved.json();assert.equal(metadata.milestone_id,destination.milestone_id);assert.equal(metadata.roadmap_id,destination.roadmap_id)
+   assert.equal((await (await fetch(base+'/'+noteId)).json()).entries[0].solution,'updated')
+   assert.equal((await fetch(base+'/'+noteId,json('PATCH',{milestone_id:'999999999'}))).status,400)
+   assert.equal((await (await fetch(base+'/'+noteId)).json()).note.milestone_id,destination.milestone_id)
+   const another=destinations.find(m=>m.roadmap_id!==destination.roadmap_id)
+   if(another){const changed=await (await fetch(base+'/'+noteId,json('PATCH',{milestone_id:another.milestone_id}))).json();assert.equal(changed.roadmap_id,another.roadmap_id)}
+   assert.equal((await fetch(base+'/'+noteId,{...json('PATCH',{milestone_id:destination.milestone_id}),headers:{'Content-Type':'application/json','x-other':'1'}})).status,404)
+  }
+  const rich={...valid(),body_format:'richtext',solution:'<p><strong>重要</strong><mark style="background-color:#fff2a8" data-color="#fff2a8">復習</mark><script>evil()</script></p>'}
+  assert.equal((await fetch(base+'/'+noteId+'/entries/'+entry.entry_id,json('PUT',rich))).status,200)
+  const restored=(await (await fetch(base+'/'+noteId)).json()).entries[0];assert.equal(restored.body_format,'richtext');assert.match(restored.solution,/<strong>重要/);assert.doesNotMatch(restored.solution,/script|evil/)
+  const richSearch=await (await fetch(base+'/library?q='+encodeURIComponent('重要復習'))).json();assert.ok(richSearch.items.some(i=>i.kind==='pdf'&&i.item_id===noteId))
   const marker='library-'+require('node:crypto').randomUUID()
   recordId=(await db.query("INSERT INTO learning_records(user_id,title,study_date,body_markdown,input_mode) VALUES($1,$2,'2026-10-08',$3,'plain') RETURNING record_id",[user.user_id,marker+' regular',marker+' content'])).rows[0].record_id
   await fetch(base+'/'+noteId,json('PATCH',{title:marker+' PDF'}))
